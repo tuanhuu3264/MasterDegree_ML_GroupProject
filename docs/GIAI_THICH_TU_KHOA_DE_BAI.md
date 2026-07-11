@@ -56,18 +56,18 @@
 
 ## 1.1 EDA (Exploratory Data Analysis)
 - **① Định nghĩa:** giai đoạn khám phá — thống kê, vẽ đồ thị, phát hiện bất thường **trước khi** mô hình hoá.
-- **④ Trong bài:** dùng EDA để (a) đo imbalance, (b) so phân phối A vs B tìm shift, (c) phát hiện các "trick" clipping.
+- **④ Trong bài:** dùng EDA để (a) đo imbalance, (b) so phân phối A vs B tìm shift, (c) phát hiện các "điểm cài cắm" clipping.
 
 ## 1.2 Thống kê mô tả (descriptive statistics)
 - **② Các đại lượng:** mean $\mu=\frac1n\sum x_i$; độ lệch chuẩn $\sigma=\sqrt{\frac1n\sum(x_i-\mu)^2}$; quartile Q1/Q2(median)/Q3 (25/50/75%); min/max.
 - **③ Ví dụ số (momen_xoan, Train):** mean 39.94 Nm, std 9.96, min 3.50, Q1 33.30, median 39.89, Q3 46.66, max 76.02.
-- **⑤ Dùng để phát hiện trick:** min `toc_do_quay` = **đúng 1180.00** lặp lại **309 lần** → dấu hiệu **clipping** (một phân phối liên tục thật không thể có 309 giá trị trùng khít).
+- **⑤ Dùng để phát hiện điểm cài cắm:** min `toc_do_quay` = **đúng 1180.00** lặp lại **309 lần** → dấu hiệu **clipping** (một phân phối liên tục thật không thể có 309 giá trị trùng khít).
 
 ## 1.3 Target Imbalance (mất cân bằng lớp)
 - **① Định nghĩa:** lớp cần dự đoán (hỏng) chiếm tỷ lệ rất nhỏ → mô hình "đoán toàn 0" vẫn đạt accuracy cao nhưng vô dụng.
 - **② Đo bằng:** tỷ lệ dương $\pi_+ = \frac{\#(y=1)}{n}$; hoặc tỷ lệ mất cân bằng $\frac{\#(y=0)}{\#(y=1)}$.
 - **③ Ví dụ số:** Train $\pi_+ = 1031/14000 = 7.36\%$ → tỷ lệ **12.6 : 1**. Test = 7.95%.
-- **⑤ Trick #3:** đề ghi "~3–5%" nhưng **thực đo ~7–8%** → phải dùng số thực khi đặt `class_weight`/ngưỡng, đừng tin mô tả đề.
+- **⑤ Điểm cài cắm #3:** đề ghi "~3–5%" nhưng **thực đo ~7–8%** → phải dùng số thực khi đặt `class_weight`/ngưỡng, đừng tin mô tả đề.
 - **Hệ quả:** **accuracy vô nghĩa** ở đây (đoán toàn 0 → 92.6% accuracy nhưng recall = 0). Phải dùng F1/AUC-PR.
 
 ## 1.4 Phân phối & so sánh A vs B
@@ -130,17 +130,19 @@
 ## 2.5 Feature Engineering (lộ cơ chế vật lý)
 - **① Định nghĩa:** tạo feature mới có ý nghĩa để mô hình "nhìn thấy" cơ chế hỏng.
 
-| Feature mới | Công thức | Cơ chế | Ví dụ số (row 0 Train) |
+| Feature giữ lại | Công thức | Cơ chế | Ví dụ số (row 0 Train, hạng H) |
 |---|---|---|---|
 | **chênh lệch nhiệt** | `nhiet_do_quy_trinh − nhiet_do_moi_truong` | HDF (tản nhiệt) | 311.80 − 301.21 = **10.59 K** |
 | **công suất cơ** | $P=\tau\cdot\omega=\text{momen}\times\dfrac{2\pi\cdot\text{rpm}}{60}$ (W) | PWF (quá tải công suất) | $47.52\times1864.3\times\frac{2\pi}{60}=$ **9277 W** |
 | **tích mòn×mômen** | `do_mon_dao × momen_xoan` | OSF (quá tải căng thẳng) | 210.9 × 47.52 = **10022** |
-| momen/tốc độ | `momen_xoan / toc_do_quay` | tải mỗi vòng | 47.52/1864.3 = 0.0255 |
+| **`osf_margin`** ⭐ | `tích mòn×mômen − ngưỡng(L/M/H)` | OSF **theo hạng SP** (tương tác 3 biến) | 10022 − 13000 = **−2978** (chưa vượt ngưỡng) |
+
+> ❌ **Đã loại** `momen_xoan/toc_do_quay` (permutation importance = **0.000**) và `ca_lam_viec` (nhiễu). **Bộ feature cuối: 5 raw + 3 cơ chế + `osf_margin` + `loai_san_pham` = 10 feature** (xem Phụ lục Phần 6 trong notebook).
 
 - **③ Diễn giải ví dụ:** row 0 có công suất **9277 W > 9000 W** → **kích hoạt PWF** (vượt biên công suất). Đây chính là "cơ chế" mà mô hình cần thấy.
 - **② Chú ý đơn vị:** $\omega$ (rad/s) $=\dfrac{2\pi\cdot\text{rpm}}{60}$. Bỏ hệ số $2\pi/60$ vẫn tỷ lệ đúng nhưng sai đơn vị Watt.
-- **④ Kiểm chứng (bắt buộc):** so AUC 5-fold **trước 0.867 → sau 0.878** (+0.011) → feature thực sự có ích.
-- **⑤ Trick #5:** `loai_san_pham` có tỷ lệ hỏng biên phẳng **nhưng** quyết định **ngưỡng OSF** (L:11000/M:12000/H:13000) → **không được loại**, nên tạo tương tác với `tich_mon_momen`.
+- **④ Kiểm chứng (bắt buộc):** thêm 3 feature cơ chế → AUC 5-fold **0.867 → 0.878**; thêm `osf_margin` → **AUC-PR (Test) 0.681 → 0.693**. Đo bằng permutation importance + ablation, không loại theo cảm tính.
+- **⑤ Điểm cài cắm #5 → `osf_margin`:** `loai_san_pham` biên phẳng **nhưng** quyết định **ngưỡng OSF** (L:11000/M:12000/H:13000). `osf_margin = mòn×momen − ngưỡng(hạng)` là cách khai thác nó. **Quy tắc FE cho mô hình cây:** chỉ thêm feature khi nó **mã hoá tương tác nhiều biến / ngưỡng theo điều kiện** (cây tự tìm ngưỡng trên 1 biến rồi).
 
 ---
 
@@ -257,15 +259,15 @@ với $p(x)$ = xác suất "thuộc Test" từ drift classifier; hằng số $\p
 
 ---
 
-# 🎯 BẢNG TỔNG: TỪ KHOÁ ↔ "TRICK" TRONG DỮ LIỆU
+# 🎯 BẢNG TỔNG: TỪ KHOÁ ↔ "ĐIỂM CÀI CẮM" TRONG DỮ LIỆU
 
-| # | Trick | Bằng chứng số | Từ khoá liên quan | Cách xử lý |
+| # | Điểm cài cắm | Bằng chứng số | Từ khoá liên quan | Cách xử lý |
 |---|---|---|---|---|
 | 1 | `toc_do_quay` clip sàn 1180 | 309 dòng = đúng 1180.00 | Thống kê mô tả, EDA | Ghi nhận censoring, không diễn giải nhầm |
 | 2 | Clip biên `do_mon_dao`(253/0), `momen_xoan`(3.5) | Pile-up 2 tập | Scaling | Cân nhắc RobustScaler |
 | 3 | Imbalance thực 7.36%/7.95% ≠ đề "3–5%" | 1031/14000 | Target imbalance | Dùng số thực đặt class_weight/ngưỡng |
 | 4 | `ca_lam_viec` nhiễu thuần | Drift-importance ≈0.01; rate phẳng | Feature importance | Không over-engineer |
-| 5 | `loai_san_pham` phẳng nhưng chi phối OSF | Ngưỡng 11000/12000/13000 | Feature engineering | Giữ + tạo tương tác |
+| 5 | `loai_san_pham` phẳng nhưng chi phối OSF | Ngưỡng 11000/12000/13000 | Feature engineering | Giữ + tạo `osf_margin` (AUC-PR 0.681→0.693) |
 | 6 | Test ngoại suy vượt Train | 159 dòng > train-max; rpm 2414>2153 | Distribution shift | Cảnh báo extrapolation |
 | — | Covariate shift (không phải concept drift) | HDF 0.84→0.83 ổn định | Importance reweighting | Reweighting + calibration hợp lệ |
 

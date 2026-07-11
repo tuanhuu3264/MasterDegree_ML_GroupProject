@@ -44,6 +44,9 @@ Nghĩa là "nóng hơn trung bình 1.43 lần độ lệch chuẩn". Giờ mọi
 
 **③ Trong bài thật:** công suất cơ $P=\text{mômen}\times\dfrac{2\pi\cdot\text{rpm}}{60}$ (đơn vị Watt). Dòng đầu dữ liệu thật: $P=9277$ W > ngưỡng 9000 → máy đó nguy cơ hỏng do quá tải.
 
+**④ Feature "ăn tiền" nhất — `osf_margin`:** giống hệt ví dụ đồ chơi trên, nhưng **ngưỡng thay đổi theo hạng sản phẩm** (L/M/H = 11000/12000/13000). Ta tính `osf_margin = mòn×momen − ngưỡng(hạng)` → dương nghĩa là "đã vượt ngưỡng quá tải căng thẳng". Thêm feature này nâng AUC-PR **0.681 → 0.693**.
+> 💡 **Bài học:** trên mô hình cây, chỉ nên thêm feature khi nó gộp **nhiều biến / ngưỡng đổi theo điều kiện** (như `osf_margin`). Còn biến đổi của **một** biến (ví dụ mômen/tốc độ) thì cây tự làm được → thêm vào **vô ích** (ta đã bỏ `momen_tren_tocdo` vì importance = 0).
+
 ---
 
 # PHẦN B — DISTRIBUTION SHIFT LÀ GÌ & VÌ SAO NGUY HIỂM

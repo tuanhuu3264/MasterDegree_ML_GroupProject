@@ -1,1 +1,17 @@
-/docs
+# Temp / IDE
+.qodo/
+~$*.docx
+*_rubric.txt
+_apply_improvements.py
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Redundant (thư mục Data_Final/ đã chứa dữ liệu)
+Data_Final.zip
+
+# macOS junk
+.DS_Store
+__MACOSX/
