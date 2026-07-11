@@ -15,6 +15,7 @@ Tài liệu bổ trợ cho 2 notebook: `../bai_tap_cuoi_khoa.ipynb` (giải phá
 |---|---|
 | [`TONG_QUAN_KY_THUAT.md`](TONG_QUAN_KY_THUAT.md) | **Tổng quan kỹ thuật:** bài toán → kiến trúc pipeline → các giai đoạn → kết quả → hạn chế |
 | [`QUY_TRINH_LAM.md`](QUY_TRINH_LAM.md) | **Nhật ký quy trình:** 8 giai đoạn từ đầu đến nâng cao F1 + lý do mỗi quyết định |
+| [`GIAI_THICH_NANG_CAO_CASE.md`](GIAI_THICH_NANG_CAO_CASE.md) | **6 thử nghiệm nâng cao** (`../nang_cao_case/`): cây nông lộ ngưỡng · learning curve · chọn feature 10 cách · VIF · regularization · scaler — mỗi cái gắn 1 bài giảng |
 
 > 💡 File tra cứu từ khoá còn có **Phần bổ sung** (B1–B10): Mutual Information, Permutation Importance, Ablation, Ensemble, CORAL, Resubstitution, **trần Bayes**, feature "sắc", khai phá ngưỡng, trần F1 tuyệt đối.
 
