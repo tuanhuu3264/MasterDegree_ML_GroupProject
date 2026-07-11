@@ -1,6 +1,6 @@
 # 📁 docs — Tài liệu giải thích bài tập Predictive Maintenance
 
-Tài liệu bổ trợ cho notebook `../bai_tap_cuoi_khoa.ipynb`. Đọc theo độ khó tăng dần:
+Tài liệu bổ trợ cho 2 notebook: `../bai_tap_cuoi_khoa.ipynb` (giải pháp chính) và `../bai_tap_nang_cao_F1.ipynb` (phân tích trần F1). Đọc theo độ khó tăng dần:
 
 | File | Dành cho | Nội dung |
 |---|---|---|
@@ -14,7 +14,9 @@ Tài liệu bổ trợ cho notebook `../bai_tap_cuoi_khoa.ipynb`. Đọc theo đ
 | File | Nội dung |
 |---|---|
 | [`TONG_QUAN_KY_THUAT.md`](TONG_QUAN_KY_THUAT.md) | **Tổng quan kỹ thuật:** bài toán → kiến trúc pipeline → các giai đoạn → kết quả → hạn chế |
-| [`QUY_TRINH_LAM.md`](QUY_TRINH_LAM.md) | **Nhật ký quy trình:** trình tự 7 giai đoạn đã làm + lý do mỗi quyết định |
+| [`QUY_TRINH_LAM.md`](QUY_TRINH_LAM.md) | **Nhật ký quy trình:** 8 giai đoạn từ đầu đến nâng cao F1 + lý do mỗi quyết định |
+
+> 💡 File tra cứu từ khoá còn có **Phần bổ sung** (B1–B10): Mutual Information, Permutation Importance, Ablation, Ensemble, CORAL, Resubstitution, **trần Bayes**, feature "sắc", khai phá ngưỡng, trần F1 tuyệt đối.
 
 ## Thông điệp nhất quán (khớp notebook)
 - **Bộ feature cuối (10):** 5 raw + `chenh_lech_nhiet` + `cong_suat_co` + `tich_mon_momen` + **`osf_margin`** + `loai_san_pham`.

@@ -272,4 +272,62 @@ với $p(x)$ = xác suất "thuộc Test" từ drift classifier; hằng số $\p
 | — | Covariate shift (không phải concept drift) | HDF 0.84→0.83 ổn định | Importance reweighting | Reweighting + calibration hợp lệ |
 
 ---
-*Tài liệu đi kèm `bai_tap_cuoi_khoa.ipynb` — mọi con số ví dụ trên đều tái lập được bằng code trong notebook.*
+
+# PHẦN BỔ SUNG — KHÁI NIỆM NÂNG CAO (feature selection · shift · trần F1)
+
+> Các từ khoá xuất hiện ở giai đoạn tinh chỉnh feature và phân tích trần F1 (notebook `bai_tap_nang_cao_F1.ipynb`).
+
+## B1. Mutual Information (thông tin tương hỗ)
+- **① Định nghĩa:** đo mức phụ thuộc giữa feature X và target y — **kể cả phi tuyến** (khác Pearson chỉ đo tuyến tính). MI = 0 ⇔ độc lập; càng lớn càng liên quan.
+- **② Ý tưởng:** $MI(X;y)=\sum P(x,y)\log\dfrac{P(x,y)}{P(x)P(y)}$ — "biết X giảm được bao nhiêu độ bất định của y".
+- **③ Ví dụ thật:** `momen_xoan` có Pearson **0.006** (nhìn như vô dụng) nhưng **MI > 0** → có tín hiệu **phi tuyến**. → chỉ nhìn Pearson sẽ loại nhầm feature.
+- **④ Khi nào dùng:** cơ chế phi tuyến/ngưỡng (đúng bài này) → dùng MI bổ sung cho heatmap Pearson.
+
+## B2. Permutation Importance (tầm quan trọng bằng hoán vị)
+- **① Định nghĩa:** đo feature quan trọng thế nào bằng cách **xáo trộn ngẫu nhiên** cột đó rồi xem hiệu năng **tụt** bao nhiêu. Tụt nhiều = quan trọng.
+- **② Ưu điểm:** đo trên **mô hình đã huấn luyện + dữ liệu Test** → phản ánh tầm quan trọng *thực tế khi triển khai* (khác feature_importance nội bộ của cây dễ thiên vị).
+- **③ Ví dụ thật:** `do_mon_dao` giảm AUC-PR **0.288** (trụ cột), `momen_tren_tocdo` giảm **0.000** (vô dụng → loại).
+- **④ Dùng để:** chọn/loại feature bằng số, không cảm tính.
+
+## B3. Ablation study (thử bỏ/giữ)
+- **① Định nghĩa:** huấn luyện lại với **các bộ feature khác nhau** (bỏ nhóm này, giữ nhóm kia) để xem nhóm nào thực sự đóng góp.
+- **③ Ví dụ thật:** bỏ feature thô → F1 **sập 0.544**; bỏ FE → F1 **0.690**; đủ bộ → **0.778**. → chứng minh cả feature thô lẫn FE đều cần.
+- **④ Dùng để:** ra quyết định "giữ/bỏ" có bằng chứng.
+
+## B4. Ensemble · Soft Voting (kết hợp mô hình)
+- **① Định nghĩa:** gộp nhiều mô hình để dự đoán chung. **Soft voting:** trung bình *xác suất* (có trọng số) của các model.
+- **③ Ví dụ thật:** LogReg + RF + XGBoost (trọng số 1:2:2) → F1 ~0.775 (không vượt RF đơn lẻ 0.78 vì đã chạm trần).
+- **④ Khi nào giúp:** khi các model **sai khác nhau** (bổ khuyết nhau); ít giúp khi đã chạm trần Bayes.
+
+## B5. CORAL (CORrelation ALignment) — một cách xử lý shift
+- **① Định nghĩa:** căn chỉnh **hiệp phương sai** (cấu trúc tương quan) của Train cho khớp Test, bằng phép "tẩy trắng rồi tô màu lại" tuyến tính. Không cần nhãn Test.
+- **③ Ví dụ thật:** ở bài này CORAL **làm TỆ hơn** (F1 0.778→0.743) vì shift là **dịch trung bình** chứ không phải đổi covariance → CORAL làm méo feature cơ chế.
+- **④ Bài học:** **chọn phương pháp shift theo LOẠI shift**; CORAL hợp khi khác biệt nằm ở cấu trúc tương quan.
+
+## B6. Resubstitution vs Cross-validation (phát hiện nhiễu nhãn)
+- **① Định nghĩa:** **Resubstitution** = huấn luyện rồi dự đoán lại **chính Train** (đo khả năng *ghi nhớ*). **CV** = đo trên phần *chưa thấy* (khả năng *tổng quát*).
+- **② Chẩn đoán:** nếu resub F1 ≈ 1.0 nhưng CV F1 thấp → **khoảng cách = nhiễu không khử được**.
+- **③ Ví dụ thật:** RF resub **1.000** vs CV **0.755** → chênh 0.25 = nhiễu bản chất của nhãn.
+
+## B7. Trần Bayes · Irreducible Error (trần tự nhiên)
+- **① Định nghĩa:** mức hiệu năng **tối đa** mọi mô hình có thể đạt, do bản thân nhãn có **thành phần ngẫu nhiên** (cùng một đầu vào X có thể ra y khác nhau).
+- **③ Bằng chứng thật:** vùng nguy hiểm nhất (`do_mon_dao>240`) chỉ hỏng **57.5%** (không phải 100%) → không thể đoán chắc → **trần F1 ~0.78**.
+- **④ Ý nghĩa:** F1 ~0.78 **không phải xử lý kém** mà là trần. F1=0.99 mới đáng nghi rò rỉ nhãn.
+
+## B8. Feature "sắc" · Margin theo ngưỡng khai phá
+- **① Định nghĩa:** feature mã hoá **trực tiếp biên cơ chế** đã khai phá được, dạng `giá trị − ngưỡng` hoặc cờ 0/1.
+- **③ Ví dụ thật:** `twf_margin = do_mon_dao − 240`, `pwf_low = max(2800 − công_suất, 0)`, `hdf_score`. Đạt **corr 0.18–0.25** (cao) + **PSI ≈ 0** (phân phối đều, không shift).
+- **④ Giá trị:** nâng mạnh **model yếu** (LogReg F1 0.31→0.58) — vì tuyến tính không tự tìm ngưỡng; ít giúp cây (cây tự tìm).
+
+## B9. Khai phá ngưỡng (Threshold Discovery)
+- **① Định nghĩa:** tìm ngưỡng thật của cơ chế bằng cách **đo tỷ lệ hỏng theo bin** của một đại lượng, tìm chỗ tỷ lệ **nhảy vọt**.
+- **③ Ví dụ thật:** tỷ lệ hỏng theo `do_mon_dao`: `(220,240]`→7% rồi `(240,255]`→**57%** ⇒ ngưỡng TWF ở **240** (không phải 200 mặc định AI4I).
+- **④ Dùng để:** tạo feature sắc đúng với *chính bộ dữ liệu này*.
+
+## B10. Trần F1 tuyệt đối (Absolute F1 ceiling)
+- **① Định nghĩa:** F1 cao nhất khi được **chọn ngưỡng tối ưu bằng chính nhãn Test** (gian lận có kiểm soát, chỉ để *đo trần* — KHÔNG dùng để báo cáo).
+- **③ Ví dụ thật:** trần tuyệt đối = **0.783** → mục tiêu 0.80 nằm ngoài tầm ⇒ *không cách hợp lệ nào* đạt 0.8.
+- **⑤ Cảnh báo:** đây là công cụ chẩn đoán; báo cáo hiệu năng **phải** dùng ngưỡng chọn trên Train (tránh rò rỉ).
+
+---
+*Tài liệu đi kèm `bai_tap_cuoi_khoa.ipynb` (giải pháp chính) và `bai_tap_nang_cao_F1.ipynb` (phân tích trần F1) — mọi con số ví dụ đều tái lập được bằng code.*
