@@ -102,20 +102,41 @@ md("""> **🔎 Quan sát:** `nhiet_do_moi_truong` và `nhiet_do_quy_trinh` của
 > **🛠️ Hướng xử lý:** (1) tạo feature **triệt tiêu offset nhiệt** (chênh lệch nhiệt); (2) định lượng shift bằng PSI/KS ở Phần 3.
 > **📐 Chứng cứ:** Phần 3.1 sẽ cho PSI nhiệt độ ~1.08 (mạnh) vs `do_mon_dao` ~0.001 (không).""")
 
-md("### 1.4 Bằng chứng điểm cài cắm **clipping** (cắt biên nhân tạo)")
-co(r"""fig,ax=plt.subplots(1,2,figsize=(12,3.4))
-tr_rpm=train['toc_do_quay']
-ax[0].hist(tr_rpm,bins=60,color='#4C72B0'); ax[0].set_title('toc_do_quay (Train) — chu y coc o bien')
-top=tr_rpm.max()
-ax[1].hist(tr_rpm[tr_rpm>tr_rpm.quantile(.98)],bins=30,color='#C44E52')
-ax[1].set_title('Duoi tren toc_do_quay — pile-up = clipping?')
+md("""### 1.4 Bằng chứng điểm cài cắm **clipping** (cắt biên nhân tạo) — *suy luận bằng loại trừ*
+
+Ta **không kết luận vội** "có clipping" chỉ vì thấy một cột dồn. Một giá trị lặp nhiều có thể do: (a) copy trùng dòng,
+(b) một mức vận hành tự nhiên, (c) trùng ngẫu nhiên, hoặc (d) clipping. Dưới đây chạy **4 test để loại trừ (a)(b)(c)**,
+chỉ còn lại (d).""")
+co(r"""tr_rpm=train['toc_do_quay']; floor=tr_rpm.min()
+fig,ax=plt.subplots(1,2,figsize=(12,3.4))
+ax[0].hist(tr_rpm,bins=60,color='#4C72B0'); ax[0].axvline(floor,ls='--',c='r')
+ax[0].set_title(f'toc_do_quay (Train) — coc o SAN {floor:.0f}')
+ax[1].hist(tr_rpm[tr_rpm<tr_rpm.quantile(.06)],bins=30,color='#C44E52')   # nhin BIEN DUOI (noi nghi co clip)
+ax[1].set_title('Phong to bien duoi: pile-up tai san?')
 plt.tight_layout(); plt.show()
-vc=tr_rpm.round().value_counts().head(3)
-print('3 gia tri toc_do_quay lap nhieu nhat (dau hieu clip):'); print(vc)""")
-md("""> **🔎 Quan sát:** Có **một cột dồn bất thường** ở biên phân phối tốc độ (nhiều máy trùng đúng một giá trị lớn).
-> **💡 Insight:** Dấu hiệu **clipping** — cảm biến bị cắt trần, giá trị thật khác nhau bị ghi thành cùng một số (**điểm cài cắm #1/#2**). Việc này **phá thông tin ở biên**.
-> **🛠️ Hướng xử lý:** Ghi nhận đây là một nguồn **nhiễu không khử được**; cân nhắc **RobustScaler** (2.5) vì có outlier nhân tạo.
-> **📐 Chứng cứ:** `value_counts` cho thấy một giá trị lặp lại vượt trội ở đuôi.""")
+print('3 gia tri toc_do_quay lap nhieu nhat:'); print(tr_rpm.round(2).value_counts().head(3))
+
+# ---- LOAI TRU cac gia thuyet khac (khong ket luan vo can cu) ----
+grp=train[tr_rpm==floor]; rest=train[tr_rpm!=floor]
+n_pile=len(grp)
+print(f'\nCot don tai san {floor:.0f}: {n_pile} may ({n_pile/len(train)*100:.1f}%)')
+print(f'[Test 1] Copy trung dong?  So dong trung HOAN TOAN moi cot = {grp.duplicated().sum()}'
+      f'  -> {"0 => may KHAC nhau (khong phai copy)" if grp.duplicated().sum()==0 else "co trung"}')
+print('[Test 2] Feature KHAC co da dang binh thuong? (std nhom-san vs phan con lai)')
+for c in ['momen_xoan','do_mon_dao','nhiet_do_quy_trinh']:
+    print(f'         {c:18s} std {grp[c].std():6.2f}  vs  {rest[c].std():6.2f}   -> tuong duong => may THAT, chi rieng toc_do bi bep')
+below=(tr_rpm<floor).sum()
+print(f'[Test 3] Co may nao toc_do < {floor:.0f}?  {below}  -> {"0 => SAN CUNG (dau hieu cat san)" if below==0 else "co"}')
+bg=tr_rpm[tr_rpm!=floor].round(2).value_counts().max()
+print(f'[Test 4] Tan suat trung: tai san={n_pile} lan | nen cao nhat={bg} lan  -> gap ~{n_pile//bg} lan (bien lien tuc => bat thuong)')""")
+md("""> **🔎 Quan sát:** `toc_do_quay` có **một cột dồn ~2.2% (≈309 máy) đúng ở biên DƯỚI = 1180 rpm** (giá trị nhỏ nhất); mọi giá trị khác chỉ lặp ~0.1%.
+> **💡 Insight — loại trừ để kết luận (không võ đoán):** đây là **dấu vân tay của clipping (cắt sàn)** — nhiều máy tốc độ thật khác nhau bị ghi thành cùng 1180 → **phá thông tin ở biên** (điểm cài cắm #1/#2). Ba giả thuyết thay thế đều bị loại:
+> &nbsp;&nbsp;• *copy trùng dòng?* → **0** dòng trùng hoàn toàn (Test 1) → là 309 máy khác nhau;
+> &nbsp;&nbsp;• *mức vận hành tự nhiên?* → feature khác vẫn đa dạng bình thường, std ≈ phần còn lại (Test 2) → **chỉ riêng cột tốc độ bị bẹp**;
+> &nbsp;&nbsp;• *trùng ngẫu nhiên?* → tần suất **~26× mức nền** và **0 máy nằm dưới 1180** (Test 3–4) → gần như bất khả với biến liên tục.
+> **🛠️ Hướng xử lý:** ghi nhận là **nhiễu cứng không khôi phục được** (góp phần tạo trần F1); cân nhắc **RobustScaler** (2.5) vì có outlier nhân tạo.
+> **📐 Chứng cứ:** `value_counts`: 1180 = 309 (2.2%) vs nền 0.09%; 0 máy < 1180; 4 test loại trừ ở trên.
+> **⚠️ Mức độ chắc chắn (trung thực):** đây là *dấu hiệu thống kê* → **gần như chắc chắn** là clipping, **không phải chứng minh tuyệt đối** — muốn khẳng định hành động *ghi đè* cần dữ liệu gốc trước khi cắt hoặc mã sinh dữ liệu. Khả năng còn lại duy nhất (setpoint điều khiển ở 1180) về mặt *mất thông tin* cũng tương đương clipping.""")
 
 md("### 1.5 Correlation heatmap (Pearson, L1) + Mutual Information (phi tuyến, L5)")
 co(r"""from sklearn.feature_selection import mutual_info_classif
@@ -126,11 +147,18 @@ mi=mutual_info_classif(train[NUM],train[TARGET],random_state=RANDOM_STATE)
 pd.Series(mi,index=NUM).sort_values().plot(kind='barh',ax=ax[1],color='#55A868')
 ax[1].set_title('Mutual Information voi target (bat phi tuyen)')
 plt.tight_layout(); plt.show()
-print('Pearson |corr| voi target:'); print(corr[TARGET].drop(TARGET).abs().sort_values(ascending=False).round(3))""")
-md("""> **🔎 Quan sát:** Pearson của từng biến gốc với `hong_hoc` đều **rất nhỏ** (|corr|<0.1), nhưng Mutual Information của `do_mon_dao`, `momen_xoan` lại **nhỉnh hơn** hẳn.
-> **💡 Insight:** Quan hệ hỏng hóc **phi tuyến theo ngưỡng** (Pearson mù với ngưỡng, MI thì bắt được). Không biến đơn lẻ nào "tuyến tính" dự báo hỏng.
-> **🛠️ Hướng xử lý:** Phải **Feature Engineering theo cơ chế** (hiệu/tích/margin) để biến quan hệ ngưỡng thành tín hiệu mô hình thấy được (Phần 2).
-> **📐 Chứng cứ:** MI(`do_mon_dao`)≫ |Pearson|; ví dụ MI ~0.06 trong khi |corr|~0.19 nhưng phi tuyến.""")
+# So sanh song song Pearson (tuyen tinh) vs MI (moi phu thuoc)
+cmp=pd.DataFrame({'|Pearson|':corr[TARGET].drop(TARGET).abs(),
+                  'MI':pd.Series(mi,index=NUM)}).sort_values('MI',ascending=False)
+display(cmp.round(3))
+# CHUNG CU 'nguong': ty le hong theo muc do_mon_dao -> ham BAC THANG (nhay vot o ~240)
+b=pd.cut(train.do_mon_dao,[0,100,180,220,240,260],include_lowest=True)
+print('Ty le hong (%) theo muc do_mon_dao  -> quan he BAC THANG, khong tuyen tinh:')
+print((train.groupby(b,observed=True)[TARGET].mean()*100).round(1).astype(str)+' %')""")
+md("""> **🔎 Quan sát:** Hầu hết biến gốc có Pearson với `hong_hoc` **rất nhỏ** (nhiệt độ/tốc độ < 0.07; `momen_xoan` chỉ **0.006**); riêng `do_mon_dao` nhỉnh nhất nhưng vẫn yếu (**0.195**). Ngược lại, **MI** của `do_mon_dao` (0.061) và `momen_xoan` (0.021) cao hơn hẳn *theo tỷ lệ*.
+> **💡 Insight:** Quan hệ hỏng hóc **phi tuyến theo ngưỡng / chữ U** nên Pearson (chỉ đo đường thẳng) **mù hoặc đánh giá thấp**, còn MI (đo mọi phụ thuộc) bắt được. Hai bằng chứng: `momen_xoan` corr ≈ 0 (0.006) nhưng MI 0.021 vì gây hỏng ở *cả hai cực* (chữ U); `do_mon_dao` tỷ lệ hỏng **nhảy 7% → 57.5% ở mốc 240** (bậc thang, không dốc đều).
+> **🛠️ Hướng xử lý:** Không biến gốc nào dự báo *tuyến tính* → phải **Feature Engineering theo cơ chế** (hiệu/tích/margin) để mã hoá ngưỡng & tương tác thành tín hiệu mô hình thấy được (Phần 2).
+> **📐 Chứng cứ:** bảng Pearson-vs-MI + bảng bậc thang mòn dao (in ở trên); `momen_xoan`: |corr| 0.006 ≪ MI 0.021.""")
 
 md("### 1.6 Phân phối theo **LỚP** (hỏng=1 vs không=0) — tìm ngưỡng cơ chế")
 co(r"""fig,axes=plt.subplots(1,len(NUM),figsize=(18,3.2))
@@ -139,11 +167,22 @@ for ax,c in zip(axes,NUM):
         ax.hist(train.loc[train[TARGET]==lab,c],bins=30,density=True,alpha=.5,color=col,label=f'hong={lab}')
     ax.set_title(c,fontsize=9); ax.legend(fontsize=6)
 plt.tight_layout(); plt.show()
-print('Ty le hong khi do_mon_dao>240:',round(train.loc[train.do_mon_dao>240,TARGET].mean()*100,1),'%')""")
-md("""> **🔎 Quan sát:** Máy hỏng dồn về **vùng mòn dao cao**, **mômen cao**, và **hai đuôi tốc độ**; nhưng hai lớp **chồng lấn nhiều**.
-> **💡 Insight:** Tồn tại **ngưỡng cơ chế** (mòn ~240...) nhưng vượt ngưỡng **không chắc chắn hỏng** → nhãn có yếu tố ngẫu nhiên.
-> **🛠️ Hướng xử lý:** FE tạo biến "khoảng cách tới ngưỡng"; đồng thời dự báo trước rằng F1 sẽ có **trần** (Phần 5).
-> **📐 Chứng cứ:** vùng `do_mon_dao>240` chỉ ~**57.5%** thật sự hỏng → 42.5% chồng lấn không khử được.""")
+
+# CHUNG CU 'chu U' cua momen: hong o CA HAI cuc (thap va cao), giua thi thap
+bm=pd.cut(train.momen_xoan,[0,20,30,40,50,60,80])
+print('Ty le hong (%) theo momen_xoan  -> chu U (hong o CA HAI cuc):')
+print((train.groupby(bm,observed=True)[TARGET].mean()*100).round(1).astype(str)+' %')
+print('Momen trung binh: hong=%.1f vs khong=%.1f (gan bang nhau -> Pearson~0, khop muc 1.5)'%(
+      train.loc[train[TARGET]==1,'momen_xoan'].mean(), train.loc[train[TARGET]==0,'momen_xoan'].mean()))
+
+# TY LE vs SO LUONG (phan biet quan trong): mon>240 ty le hong cao, NHUNG da so CA hong lai o mon thap
+print('\nvung do_mon_dao>240: %.1f%% hong (TY LE cao)'%(train.loc[train.do_mon_dao>240,TARGET].mean()*100))
+print('nhung %.1f%% SO CA hong lai nam o mon<=240 (co che khac; may mon thap dong hon nhieu)'%(
+      (train.loc[train[TARGET]==1,'do_mon_dao']<=240).mean()*100))""")
+md("""> **🔎 Quan sát:** Tỷ lệ hỏng cao ở **vùng mòn dao cao**, **cả hai cực mômen (chữ U)** và **hai đuôi tốc độ**; hai lớp **chồng lấn nhiều**.
+> **💡 Insight:** Có **ngưỡng cơ chế** (mòn ~240) nhưng **vượt ngưỡng không chắc chắn hỏng** → nhãn có yếu tố ngẫu nhiên. Mômen gây hỏng ở *cả hai đầu* (thấp = thiếu công suất PWF, cao = quá tải) nên **trung bình hai lớp gần bằng nhau (39.7 ≈ 40.0) → Pearson ≈ 0** (khớp mục 1.5).
+> **🛠️ Hướng xử lý:** FE tạo biến **"khoảng cách tới ngưỡng"** (`osf_margin`, `twf_margin`…) để mã hoá đúng ngưỡng; đồng thời **dự báo trước F1 sẽ có trần** (Phần 5) vì phần chồng lấn là nhiễu không khử được.
+> **📐 Chứng cứ:** mômen 0–20 → **36.9%** hỏng và 60–80 → **29.1%** (giữa chỉ ~6%); vùng mòn > 240 chỉ **57.5%** hỏng (42.5% chồng lấn); nhưng **60.8% số ca hỏng** lại nằm ở mòn ≤ 240 — phân biệt *tỷ lệ* vs *số lượng*.""")
 
 md("### 1.7 Kiểm tra biến phân loại — bẫy #4 & #5")
 co(r"""for c in CAT:
