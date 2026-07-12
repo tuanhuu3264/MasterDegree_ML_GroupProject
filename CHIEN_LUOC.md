@@ -147,6 +147,8 @@ Nhờ vậy "thử sai nhiều" vẫn trung thực về mặt phương pháp.
 ## 8. Nhật ký tiến độ (checklist chạy)
 
 > Cập nhật mỗi khi xong một mốc. Notebook hiện tại: xem `bai_tap_cuoi_khoa.ipynb`.
+>
+> ✅ **ĐÃ XÂY LẠI TỪ ĐẦU (fresh rebuild)** bằng `build_notebook.py` mới — **79 cells, 0 lỗi, rubric 23/23**, chạy end-to-end sạch. Toàn bộ mục dưới đã re-verify trên bản mới. Bản 83-cell trước lưu ở `bai_tap_cuoi_khoa_BACKUP.ipynb`. Top leaderboard: **v4_rf_calib F1=0.778, AUC-PR=0.690**.
 
 - [x] **Setup + Harness** — `evaluate()`/`leaderboard()`/`best_threshold_f1()`, `LEADERBOARD` ghi đè theo version. *(+ psi()/shift_level() dùng chung)*
 - [x] **Phần 1 — EDA** (1.0đ): 1.1 imbalance · 1.2 overlay hist + bảng dịch chuyển · 1.3 boxplot+heatmap · 1.3b tương tác · 1.4 categorical · 1.5 tổng kết.
