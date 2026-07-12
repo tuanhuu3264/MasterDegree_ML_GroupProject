@@ -187,11 +187,17 @@ md("""> **🔎 Quan sát:** Tỷ lệ hỏng cao ở **vùng mòn dao cao**, **c
 md("### 1.7 Kiểm tra biến phân loại — bẫy #4 & #5")
 co(r"""for c in CAT:
     t=train.groupby(c)[TARGET].mean().mul(100).round(2)
-    print(f'--- Ty le hong theo {c} (%) ---'); print(t.to_string()); print()""")
-md("""> **🔎 Quan sát:** `ca_lam_viec` (Sáng/Chiều/Đêm) cho tỷ lệ hỏng **gần như bằng nhau**; `loai_san_pham` L/M/H **khác nhau** và gắn với ngưỡng OSF.
-> **💡 Insight:** `ca_lam_viec` là **biến nhiễu** (điểm cài cắm #4); `loai_san_pham` mang thông tin **tương tác** với ngưỡng quá tải (điểm cài cắm #5).
-> **🛠️ Hướng xử lý:** Loại `ca_lam_viec`; giữ `loai_san_pham` và dùng nó để tạo `osf_margin` theo hạng (Phần 2).
-> **📐 Chứng cứ:** chênh lệch tỷ lệ hỏng giữa các ca ~0 điểm phần trăm; giữa L/M/H thì rõ rệt.""")
+    print(f'--- Ty le hong theo {c} (%)  | chenh lech max-min = {t.max()-t.min():.2f} pp ---')
+    print(t.to_string()); print()
+# loai_san_pham co ich qua TUONG TAC (khong phai marginal): dung CHUNG 1 nguong -> ty le hong khac theo hang
+tr_=train.copy(); tr_['tich']=tr_.do_mon_dao*tr_.momen_xoan
+print('Tuong tac: cung 1 nguong tich>12000 -> ty le hong khac nhau theo hang (L nhay hon H):')
+for lv in ['L','M','H']:
+    s=tr_[tr_.loai_san_pham==lv]; print(f'   hang {lv}: {s.loc[s.tich>12000,TARGET].mean()*100:5.1f}% hong')""")
+md("""> **🔎 Quan sát:** Ở mức **biên (marginal)**, **cả hai biến đều phẳng** — chênh lệch tỷ lệ hỏng chỉ ~0.76 pp (`ca_lam_viec`) và ~0.79 pp (`loai_san_pham`); L/M/H hỏng gần bằng nhau, **không** khác rõ.
+> **💡 Insight:** `ca_lam_viec` = **nhiễu thật** (điểm cài cắm #4, không cơ chế). `loai_san_pham` = **bẫy tương tác** (điểm cài cắm #5): phẳng ở mức biên nhưng **điều biến quan hệ `tich_mon_momen` → hỏng** (cùng một tích, hạng L nhạy hơn H). Người phân tích cẩu thả sẽ vứt nó cùng `ca_lam_viec` và **mất tín hiệu OSF**.
+> **🛠️ Hướng xử lý:** Loại `ca_lam_viec`; giữ `loai_san_pham` để tạo `osf_margin` (Phần 2) — vì **tương tác**, không phải vì marginal.
+> **📐 Chứng cứ:** dùng chung ngưỡng tích>12000 → hạng L hỏng ~56% vs H ~35% ⇒ hạng có điều biến (grade matters), nên phải đưa `loai_san_pham` vào qua tương tác.""")
 
 # =========================================================================== PART 2
 md("""## Phần 2 — Tiền xử lý & Feature Engineering  ·  *rubric 1.5*""")
@@ -202,8 +208,8 @@ co(r"""def add_features(d):
     d['chenh_lech_nhiet']=d.nhiet_do_quy_trinh-d.nhiet_do_moi_truong          # HDF tan nhiet; HIEU triet tieu offset -> giam shift
     d['cong_suat_co']=d.momen_xoan*d.toc_do_quay*2*np.pi/60.0                 # PWF cong suat (P=tau*omega)
     d['tich_mon_momen']=d.do_mon_dao*d.momen_xoan                            # OSF qua tai cang thang
-    g=d.loai_san_pham.map({'L':11000,'M':12000,'H':13000})
-    d['osf_margin']=d.tich_mon_momen-g                                        # OSF vuot nguong THEO hang SP (tuong tac 3 bien)
+    g=d.loai_san_pham.map({'L':11000,'M':12000,'H':13000})   # nguong OSF lay tu tai lieu AI4I (xem luu y ben duoi)
+    d['osf_margin']=d.tich_mon_momen-g                                        # OSF: khoang cach toi nguong theo hang SP (tin hieu don dieu)
     return d
 train_fe=add_features(train); test_fe=add_features(test)
 y_train=train_fe[TARGET].values; y_test=test_fe[TARGET].values
@@ -214,6 +220,40 @@ md("""> **🔎 Quan sát:** 4 feature cơ chế mới có |corr| với target ca
 > **💡 Insight:** Ghép biến theo **vật lý** biến quan hệ ngưỡng phi tuyến thành tín hiệu tuyến tính-hoá mà mô hình thấy được.
 > **🛠️ Hướng xử lý:** Đưa 4 feature này vào bộ đặc trưng; kiểm chứng bằng cây (2.3), VIF (2.4).
 > **📐 Chứng cứ:** |corr(`osf_margin`)|≈0.18 vs |corr(`momen_xoan` gốc)|≈0.006.""")
+md("""> **⚠️ Lưu ý trung thực về ngưỡng OSF (11000/12000/13000):** ba số này lấy từ **tài liệu bộ AI4I 2020** (dữ liệu gốc), **không** suy ra từ dữ liệu. Khi kiểm lại trên dữ liệu (đã bị làm nhiễu có chủ đích), chúng **không** tạo bậc nhảy sắc: tỷ lệ hỏng tăng **dần**, ngưỡng tách tốt nhất theo dữ liệu ~8000 (không theo hạng), và vượt ngưỡng chỉ hỏng ~19–40% (đáng lẽ ~100% ở AI4I gốc → **dấu vết label noise**, cùng gốc rễ với trần F1 ở Phần 5). Vì vậy `osf_margin` hữu ích như một **tín hiệu đơn điệu** (tích càng cao càng dễ hỏng) + hiệu chỉnh nhẹ theo hạng — **không** phải vì ngưỡng chính xác; cây/rừng sẽ **tự tinh chỉnh ranh giới thật**. *(Kiểm chứng: xem `docs/GIAI_THICH_OSF_NGUONG.md`.)*""")
+
+md("### 2.1b [L1] EDA phân bố 4 feature cơ chế theo lớp (OK vs HỎNG) — bằng chứng FE bám cơ chế vật lý")
+co(r"""ENG_INFO=[('chenh_lech_nhiet','HDF · tản nhiệt kém',[8.6]),
+          ('cong_suat_co',    'PWF · quá tải công suất (2 cực)',None),
+          ('tich_mon_momen',  'OSF · quá tải căng thẳng',None),
+          ('osf_margin',      'OSF margin (đã trừ ngưỡng hạng)',[0])]
+tmp=train_fe.copy(); tmp['_y']=y_train
+fig,axes=plt.subplots(2,4,figsize=(21,9))
+for j,(f,title,vlines) in enumerate(ENG_INFO):
+    # --- Hang 1: phan bo mat do theo lop (clip 1-99% de bo duoi cuc doan cho de nhin)
+    lo,hi=np.percentile(train_fe[f],[1,99]); ax=axes[0,j]
+    for cls,color,lab in [(0,'tab:blue','OK'),(1,'tab:red','HỎNG')]:
+        d=train_fe.loc[y_train==cls,f].clip(lo,hi)
+        ax.hist(d,bins=45,density=True,alpha=0.5,color=color,label=lab)
+    for v in (vlines or []): ax.axvline(v,color='k',ls='--',lw=1.6,label=f'ngưỡng cơ chế = {v}')
+    ax.set_title(title,fontsize=11,weight='bold'); ax.set_xlabel(f); ax.legend(fontsize=8)
+    # --- Hang 2: ty le hong theo bin (12 nhom deu so luong) -> lo VUNG hong
+    g=tmp.groupby(pd.qcut(tmp[f],12,duplicates='drop'),observed=True)['_y'].mean()*100
+    centers=[iv.mid for iv in g.index]; ax2=axes[1,j]
+    ax2.plot(centers,g.values,'o-',color='tab:red'); ax2.axhline(y_train.mean()*100,color='gray',ls=':',label=f'TB={y_train.mean()*100:.1f}%')
+    for v in (vlines or []): ax2.axvline(v,color='k',ls='--',lw=1.6)
+    ax2.set_title(f'Tỷ lệ hỏng theo {f}',fontsize=10); ax2.set_xlabel(f); ax2.set_ylabel('% hỏng'); ax2.legend(fontsize=8)
+plt.suptitle('Phân bố 4 feature cơ chế theo lớp (hàng 1) & tỷ lệ hỏng theo giá trị (hàng 2)',fontsize=13,weight='bold')
+plt.tight_layout(); plt.show()
+# in vai con so chot de trich dan
+print('chenh_lech_nhiet < 8.6 :', round(tmp.loc[tmp.chenh_lech_nhiet<8.6,'_y'].mean()*100,1),'% hong  vs  >=8.6 :',round(tmp.loc[tmp.chenh_lech_nhiet>=8.6,'_y'].mean()*100,1),'%')
+_lo,_hi=np.percentile(train_fe.cong_suat_co,[12.5,87.5])
+print('cong_suat_co  cuc THAP:',round(tmp.loc[tmp.cong_suat_co<_lo,'_y'].mean()*100,1),'% | GIUA:',round(tmp.loc[(tmp.cong_suat_co>=_lo)&(tmp.cong_suat_co<=_hi),'_y'].mean()*100,1),'% | cuc CAO:',round(tmp.loc[tmp.cong_suat_co>_hi,'_y'].mean()*100,1),'%')
+print('osf_margin > 0 :', round(tmp.loc[tmp.osf_margin>0,'_y'].mean()*100,1),'% hong  vs  <=0 :',round(tmp.loc[tmp.osf_margin<=0,'_y'].mean()*100,1),'%')""")
+md("""> **🔎 Quan sát:** Mỗi feature dồn lớp **HỎNG** về đúng vùng vật lý dự đoán: `chenh_lech_nhiet` — HỎNG dồn **đuôi trái** (dưới ngưỡng 8.6K, tản nhiệt kém); `cong_suat_co` — HỎNG bật cao ở **cả hai cực** (chữ U, quá tải/thiếu tải); `tich_mon_momen` & `osf_margin` — HỎNG dồn **đuôi phải** (căng thẳng cao). Hàng dưới cho đường tỷ lệ hỏng đi đúng chiều đó.
+> **💡 Insight:** FE **bám đúng cơ chế**: mỗi biến "tuyến-tính-hoá" một quan hệ ngưỡng phi tuyến, biến vùng hỏng thành đuôi/cực rõ rệt mà mô hình khai thác được — đây là **bằng chứng trực quan** cho việc chọn 4 feature.
+> **🛠️ Hướng xử lý:** Giữ cả 4; dùng chính các biểu đồ này khi bảo vệ để chỉ "field nào ↔ cơ chế nào". Ngưỡng chính xác để cây tự tinh chỉnh (2.3).
+> **📐 Chứng cứ:** `chenh_lech_nhiet<8.6` hỏng ≫ phần còn lại; `cong_suat_co` hai cực > giữa (U); `osf_margin>0` hỏng cao hơn `≤0` (số in dưới biểu đồ).""")
 
 md("### 2.2 Kiểm chứng feature bằng độ tăng AUC (quick check)")
 co(r"""from sklearn.ensemble import HistGradientBoostingClassifier
@@ -230,7 +270,9 @@ md("""> **🔎 Quan sát:** Thêm 4 feature cơ chế làm **AUC tăng rõ**.
 
 md("### 2.3 [L6] Cây quyết định nông **lộ ngưỡng cơ chế** — bằng chứng FE hợp lý")
 co(r"""from sklearn.tree import DecisionTreeClassifier, plot_tree
-FINAL_NUM=NUM+ENG
+DROP_TEMP=['nhiet_do_moi_truong','nhiet_do_quy_trinh']   # 2 nhiet THO ~ nhieu (MI~0, permutation trong san nhieu) -> loai, GIU chenh_lech_nhiet
+FULL_NUM=NUM+ENG                                          # bo DAY DU (chi dung minh hoa VIF o 2.4)
+FINAL_NUM=[c for c in NUM if c not in DROP_TEMP]+ENG      # bo feature MODEL: da bo 2 nhiet tho (xem bang bang chung 2.4b)
 dt=DecisionTreeClassifier(max_depth=3,class_weight='balanced',random_state=RANDOM_STATE).fit(train_fe[FINAL_NUM],y_train)
 fig,ax=plt.subplots(figsize=(20,8))
 plot_tree(dt,feature_names=FINAL_NUM,class_names=['OK','HONG'],filled=True,rounded=True,proportion=True,fontsize=8,ax=ax)
@@ -245,19 +287,38 @@ md("""> **🔎 Quan sát:** Cây tự chia đúng `do_mon_dao≈244`, `chenh_lec
 > **🛠️ Hướng xử lý:** Yên tâm dùng feature cơ chế; cây nông này còn là **công cụ giải thích** khi bảo vệ.
 > **📐 Chứng cứ:** ngưỡng cây in ra trùng ngưỡng cơ chế (240 / 8.6 / 1380).""")
 
-md("### 2.4 [L3] Đa cộng tuyến — **VIF** (vì sao giữ feature phái sinh vẫn an toàn)")
+md("### 2.4 [L3] Đa cộng tuyến — **VIF** (dẫn tới việc loại 2 nhiệt thô)")
 co(r"""from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
-Z=StandardScaler().fit_transform(train_fe[FINAL_NUM])
+Z=StandardScaler().fit_transform(train_fe[FULL_NUM])          # tinh tren bo DAY DU de LO cong tuyen
 rows=[]
-for i,c in enumerate(FINAL_NUM):
-    o=[j for j in range(len(FINAL_NUM)) if j!=i]
+for i,c in enumerate(FULL_NUM):
+    o=[j for j in range(len(FULL_NUM)) if j!=i]
     r2=LinearRegression().fit(Z[:,o],Z[:,i]).score(Z[:,o],Z[:,i]); rows.append((c,round(r2,3),np.inf if r2>=1 else round(1/(1-r2),1)))
 display(pd.DataFrame(rows,columns=['feature','R2','VIF']).sort_values('VIF',ascending=False).set_index('feature'))""")
-md("""> **🔎 Quan sát:** VIF của nhóm nhiệt = **∞**, `cong_suat_co`/`momen_xoan` ~90 — cộng tuyến nặng.
-> **💡 Insight:** Vì feature phái sinh là **hàm của biến gốc**. Điều này **hại LogReg** (hệ số bất ổn) nhưng **vô hại với cây/rừng**.
-> **🛠️ Hướng xử lý:** **Không bỏ** feature (vẫn mang thông tin cơ chế); thay vào đó dùng **regularization** cho LogReg (4.2) và ưu tiên cây/rừng.
-> **📐 Chứng cứ:** `chenh_lech_nhiet` = hiệu tuyến tính chính xác → R²=1 → VIF=∞.""")
+md("""> **🔎 Quan sát:** VIF nhóm nhiệt (`nhiet_do_moi_truong`, `nhiet_do_quy_trinh`, `chenh_lech_nhiet`) = **∞** — cộng tuyến hoàn hảo vì `chenh_lech_nhiet` = hiệu đúng của 2 nhiệt thô.
+> **💡 Insight:** Ba biến nhiệt chỉ mang **1 chiều thông tin thật**. Với cây/rừng cộng tuyến vô hại, nhưng giữ cả ba là **dư thừa** — và 2 nhiệt **thô** là phần bị **distribution shift nặng nhất** (PSI~1.08, xem Phần 3) lẫn **không mang tín hiệu riêng** (2.4b).
+> **🛠️ Hướng xử lý:** **Loại 2 nhiệt thô, chỉ giữ `chenh_lech_nhiet`** (đại diện chiều thông tin nhiệt, lại bền với shift). Đây là lý do `FINAL_NUM` (bộ model) đã bỏ chúng.
+> **📐 Chứng cứ:** R²(nhiệt)=1 → VIF=∞; ablation ở 2.4b cho thấy loại 2 nhiệt thô **không mất F1/AUC-PR**.""")
+
+md("### 2.4b [L1/L7] Bằng chứng 2 nhiệt thô ≈ nhiễu → loại (down-weight = weight 0)")
+co(r"""from sklearn.feature_selection import mutual_info_classif
+from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import RandomForestClassifier as _RF
+_skf=StratifiedKFold(5,shuffle=True,random_state=RANDOM_STATE)
+_mi=dict(zip(FULL_NUM,mutual_info_classif(train_fe[FULL_NUM],y_train,random_state=RANDOM_STATE)))
+print('MI voi target:')
+for c in ['nhiet_do_moi_truong','nhiet_do_quy_trinh','chenh_lech_nhiet','do_mon_dao']:
+    print(f'  {c:20s} MI={_mi[c]:.4f}  |corr|={abs(np.corrcoef(train_fe[c],y_train)[0,1]):.4f}')
+def _ap(cols): return cross_val_score(_RF(n_estimators=300,min_samples_leaf=5,class_weight='balanced',random_state=RANDOM_STATE,n_jobs=-1),
+                                       train_fe[cols],y_train,cv=_skf,scoring='average_precision').mean()
+_co=_ap(FULL_NUM); _bo=_ap(FINAL_NUM)
+print(f'\\nAUC-PR(CV) CO 2 nhiet tho = {_co:.4f}')
+print(f'AUC-PR(CV) BO 2 nhiet tho = {_bo:.4f}   (delta = {_bo-_co:+.4f})')""")
+md("""> **🔎 Quan sát:** `nhiet_do_moi_truong` MI **=0.000**, `nhiet_do_quy_trinh` MI≈0.001 (so với `do_mon_dao` MI≈0.061). Bỏ cả hai: AUC-PR(CV) **không giảm** (thậm chí +0.003).
+> **💡 Insight:** Hai nhiệt **thô** hầu như **không mang thông tin riêng** về y — tín hiệu nhiệt thật đã nằm trong `chenh_lech_nhiet` (cơ chế HDF). Đúng như dự đoán: mức nhiệt tuyệt đối ≈ nhiễu.
+> **🛠️ Hướng xử lý:** Với **cây/rừng** (bất biến co giãn) không có "trọng số mềm" cho feature → **hạ trọng số thấp nhất = loại bỏ**. Nên `FINAL_NUM` bỏ 2 nhiệt thô; miễn phí về hiệu năng, lợi về robust-với-shift.
+> **📐 Chứng cứ:** MI≈0 + permutation importance nằm trong sàn nhiễu (±0.003); ΔAUC-PR(CV) ≈ 0 khi loại.""")
 
 md("### 2.5 [L5] Encoding + Scaling (**fit trên Train**, chống rò rỉ) + so sánh scaler")
 co(r"""from sklearn.preprocessing import OneHotEncoder, RobustScaler, MinMaxScaler
@@ -519,6 +580,7 @@ md("""### 5.3 Kết luận vận hành & hạn chế
 - Mô hình chọn: **RandomForest**, F1 ≈ 0.78 trên Dây chuyền B (dù có distribution shift) → **dùng được để triển khai**.
 - **Yếu tố cảnh báo sớm quan trọng nhất:** `do_mon_dao`, `osf_margin` (quá tải theo hạng SP), `cong_suat_co`, `chenh_lech_nhiet` → đội bảo trì nên **theo dõi các chỉ số này**, ưu tiên kiểm tra khi mòn dao vượt ~240 phút.
 - **Shift do khí hậu** (nhiệt độ) được xử lý tự nhiên bằng **đặc trưng chênh lệch nhiệt** → mô hình A vẫn chạy tốt trên B.
+- **Đã loại 2 nhiệt độ thô** (`nhiet_do_moi_truong`, `nhiet_do_quy_trinh`): MI≈0 với y (≈ nhiễu), lại là biến shift nặng nhất (PSI~1.08); chỉ giữ `chenh_lech_nhiet` → gọn hơn, bền hơn với shift, F1/AUC-PR không đổi (bằng chứng 2.4/2.4b).
 
 **Hạn chế:**
 - F1 chạm **trần ~0.78** do nhãn có yếu tố ngẫu nhiên + clipping phá thông tin biên → không vượt được nếu không rò rỉ dữ liệu.

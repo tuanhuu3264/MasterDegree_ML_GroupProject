@@ -20,12 +20,13 @@ Tài liệu bổ trợ cho 2 notebook: `../bai_tap_cuoi_khoa.ipynb` (giải phá
 | [`GIAI_THICH_DOC_BIEU_DO_EDA.md`](GIAI_THICH_DOC_BIEU_DO_EDA.md) | **Đọc biểu đồ EDA** trong `bai_tap_FINAL.ipynb`: giải thích ô insight 1.1 (thiếu dữ liệu/imputation) & 1.3 (shift A↔B, covariate vs concept drift, triệt tiêu offset nhiệt) |
 | [`GIAI_THICH_PEARSON_VS_MI.md`](GIAI_THICH_PEARSON_VS_MI.md) | **Pearson vs Mutual Information** (mục 1.5): vì sao quan hệ hỏng phi tuyến theo ngưỡng (momen corr 0.006 « MI 0.021; mòn dao nhảy 7%→57.5% ở mốc 240) + chỗ đã sửa cho đúng |
 | [`GIAI_THICH_PHAN_PHOI_THEO_LOP.md`](GIAI_THICH_PHAN_PHOI_THEO_LOP.md) | **Phân phối feature theo lớp** (mục 1.6): soát 4 khẳng định; sửa "mômen cao"→"cả hai cực mômen (chữ U)"; phân biệt tỷ lệ vs số lượng |
+| [`GIAI_THICH_OSF_NGUONG.md`](GIAI_THICH_OSF_NGUONG.md) | **Ngưỡng OSF 11000/12000/13000**: nguồn gốc (spec AI4I, không suy từ data) + kiểm chứng cho thấy data KHÔNG xác nhận bậc nhảy (dấu vết label noise) + 2 nhận định ban đầu đã sửa |
 
 > 💡 File tra cứu từ khoá còn có **Phần bổ sung** (B1–B10): Mutual Information, Permutation Importance, Ablation, Ensemble, CORAL, Resubstitution, **trần Bayes**, feature "sắc", khai phá ngưỡng, trần F1 tuyệt đối.
 
 ## Thông điệp nhất quán (khớp notebook)
-- **Bộ feature cuối (10):** 5 raw + `chenh_lech_nhiet` + `cong_suat_co` + `tich_mon_momen` + **`osf_margin`** + `loai_san_pham`.
-- **Đã loại:** `momen_tren_tocdo` (permutation importance = 0) & `ca_lam_viec` (nhiễu).
-- **Kết quả:** RandomForest — AUC-PR **0.693**, **F1 ≈ 0.78** (đã ở trần tự nhiên do nhãn có yếu tố ngẫu nhiên).
+- **Bộ feature model:** 3 raw (`toc_do_quay` + `momen_xoan` + `do_mon_dao`) + `chenh_lech_nhiet` + `cong_suat_co` + `tich_mon_momen` + **`osf_margin`** + `loai_san_pham`.
+- **Đã loại:** `momen_tren_tocdo` (permutation importance = 0) · `ca_lam_viec` (nhiễu) · **2 nhiệt độ thô** `nhiet_do_moi_truong`, `nhiet_do_quy_trinh` (MI≈0 với y ≈ nhiễu, VIF=∞ với `chenh_lech_nhiet`, lại là biến shift nặng nhất PSI~1.08 → chỉ giữ hiệu nhiệt; bằng chứng mục 2.4/2.4b).
+- **Kết quả:** RandomForest — AUC-PR **0.689**, **F1 ≈ 0.78** (đã ở trần tự nhiên do nhãn có yếu tố ngẫu nhiên; bỏ 2 nhiệt thô không đổi F1).
 - **6 điểm cài cắm** trong dữ liệu: clip 1180 · clip biên · imbalance 7–8% (≠ đề 3–5%) · `ca_lam_viec` nhiễu · `loai_san_pham` bẫy tương tác · Test ngoại suy.
 - **Bản chất shift:** covariate shift (không phải concept drift) → FE theo cơ chế + Importance Reweighting + Threshold Calibration.
