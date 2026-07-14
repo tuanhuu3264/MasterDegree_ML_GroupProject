@@ -1,156 +1,121 @@
-# Script thuyết trình — chia 4 người (v5)
+# Script thuyết trình — 4 người (deck `SLIDE_THUYET_TRINH_v5.pptx`, 29 slide)
 
-> Deck: `C:/Users/LEGION/AppData/Local/Temp/claude/D--studies-Master-s-Degree-MSE-Session-1-ML-GroupProject-bai-tap-cuoi-khoa/b0b6e863-aebc-4618-98e8-e039d29f16c9/scratchpad/v5_build.pptx`. Script này cũng nằm trong **speaker notes** của từng slide.
-> Tổng ~13–14 phút + Q&A. Mỗi người ~3–3.5 phút. Chuyển người ở các slide "Divider".
+> Tổng ~13–14 phút + Q&A. Chuyển người ở các slide **Divider** (3, 10, 15, 21).
+> Script này cũng nằm trong **speaker notes** của từng slide. Ký hiệu: **[mở]** câu mở, **[chuyển]** câu bàn giao, *(cue: …)* = động tác/nhấn mạnh.
 
-## Thứ tự & phân công nhanh
+## Phân công nhanh
 
-| Người | Slide phụ trách | Nội dung | Thời lượng |
+| Người | Slide | Nội dung | Thời lượng |
 |---|---|---|---|
-| — (chung) | 1–2 | Slide mở đầu + Agenda | ~0.5' |
-| 1 | 3–9 | Bài toán, shift, bản đồ đề, EDA | ~3' |
-| 2 | 10–14 | Tiền xử lý, 3 đặc trưng, PSI/KS, drift | ~3' |
-| 3 | 15–20 | Reweighting, IWV, 4 mô hình, ensemble | ~3.5' |
-| 4 | 21–29 | Kết quả, confusion matrix, bootstrap, báo cáo, quyết định kỹ thuật, kết luận, Q&A | ~4' |
-
-
----
-
-## MC / chung
-
-### ▸ Slide mở đầu
-
-MC/Người 1: Kính chào thầy/cô và các bạn. Nhóm em trình bày bài toán dự đoán máy CNC sắp hỏng trong bối cảnh 'dữ liệu lúc học khác dữ liệu lúc dùng thật' (distribution shift). Kết quả chốt: F1 = 0.781 trên nhà máy B, gấp 3.4 lần baseline, notebook chạy full không lỗi. Bài chia làm 4 phần do 4 thành viên trình bày.
-
-### ▸ Agenda
-
-Người 1: Nhóm em chia 4 phần. Người 1 trình bày bài toán và khám phá dữ liệu; Người 2 phần tiền xử lý, tạo đặc trưng và phát hiện shift; Người 3 xử lý shift và xây mô hình; Người 4 kết quả, độ tin cậy và kết luận. Hai khối nhiều điểm nhất là xử lý shift và kết quả thực trên nhà máy B.
-
+| — (chung) | 1–2 | Mở đầu + Agenda | ~0,5' |
+| **1** | 3–9 | Bài toán · distribution shift · bản đồ đề · EDA (Phần 1) | ~3' |
+| **2** | 10–14 | Tiền xử lý · 3 đặc trưng · đo shift PSI/KS · drift classifier (Phần 2 + 3.1–3.2) | ~3' |
+| **3** | 15–20 | Reweighting · IWV · 4 mô hình · so sánh · ensemble (Phần 3.3–3.4 + Phần 4) | ~3,5' |
+| **4** | 21–29 | Kết quả · confusion matrix · bootstrap · báo cáo · quyết định kỹ thuật · kết luận · Q&A (Kết quả + Phần 5) | ~4' |
 
 ---
 
-## NGƯỜI 1 — Mở đầu & EDA
+## ⭐ Cách script đáp ứng 2 tiêu chí Phần 5 (0,5đ)
 
-### ▸ Divider Phần 1
+**Tiêu chí 1 — "Trình bày rõ ràng, logic; giải thích được quyết định kỹ thuật khi được hỏi":**
+- *Rõ ràng, logic:* mạch 5 phần + slide Divider báo chuyển phần; mỗi người **kết mỗi slide bằng một câu "⇒ vì sao"**; câu **[chuyển]** nối liền các phần.
+- *Giải thích quyết định khi hỏi:* **Người 4 trình bày slide 27 "Quyết định kỹ thuật & lý do"** (bảng 8 quyết định → lý do) — chứng minh không quyết định nào tuỳ tiện; đồng thời **ma trận phân công Q&A** (cuối file) để đúng người trả lời đúng mảng, dựa trên `NGAN_HANG_QA.md`.
 
-Người 1: Em bắt đầu với bài toán và phần khám phá dữ liệu.
+**Tiêu chí 2 — "Kết luận có insight vận hành/bảo trì; nhận ra hạn chế và đề xuất hướng cải tiến":**
+- **Người 4** đảm nhiệm trọn: **S25** insight vận hành (ưu tiên độ mòn dao, cảnh báo theo ngưỡng vật lý, 2 mức cảnh báo) · **S26** hạn chế + hướng cải tiến · **S28** kết luận đọng lại.
 
-### ▸ Bài toán
-
-Người 1: Mục tiêu là dự đoán nhị phân — máy có hỏng ở ca kế tiếp hay không — để bảo trì chủ động. Có 5 số đo cảm biến và 2 nhãn phân loại. Hai điểm khiến bài khó: thứ nhất máy hỏng chỉ ~8% nên rất hiếm, dùng accuracy là vô nghĩa, phải dùng F1 và AUC-PR; thứ hai, tập huấn luyện là nhà máy A còn tập chấm là nhà máy B với điều kiện vận hành khác — đó là distribution shift.
-
-### ▸ Shift là gì
-
-Người 1: Distribution shift nghĩa là dữ liệu lúc học khác lúc dùng thật. Giống như học lái ở quê rồi ra thành phố. Điểm mấu chốt: cơ chế vật lý gây hỏng thì giống nhau ở A và B, chỉ có các con số đầu vào bị lệch — đây là covariate shift. Và luật chơi khó nhất: bị chấm trên B nhưng không được nhìn nhãn B. Chiến lược của nhóm gồm 3 bước: đo mức lệch, tạo đặc trưng miễn nhiễm với lệch, rồi tinh chỉnh.
-
-### ▸ Bản đồ đề
-
-Người 1: Bài của nhóm bám đúng 5 phần chấm điểm. Lưu ý thang điểm: riêng xử lý shift 2 điểm và kết quả thật trên B 3 điểm — cộng lại là một nửa tổng điểm, nên nhóm đầu tư nặng nhất vào hai khối này.
-
-### ▸ EDA 1.1
-
-Người 1: Máy hỏng chỉ khoảng 7-8% ở cả hai nhà máy. Điều quan trọng: tỉ lệ hỏng gần như không đổi giữa A và B, nghĩa là cái lệch nằm ở số đo đầu vào chứ không phải ở nhãn — đây là covariate shift. Dữ liệu sạch: không thiếu, không trùng. Bảng bên phải cho thấy nhà máy B nóng hơn và quay nhanh hơn, riêng độ mòn dao gần như bằng nhau.
-
-### ▸ EDA 1.2
-
-Người 1: Định lượng mức lệch: nhà máy B nóng hơn 2-2.5 độ và độ dao động nhiệt rộng hơn gần 30%, quay nhanh hơn 70 vòng/phút, lực xoắn thấp hơn 8.5%. Riêng độ mòn dao gần như bằng nhau — đây là biến ổn định để mô hình bám vào. Trên histogram, phân phối A và B không trùng nhau, đó là shift nhìn thấy bằng mắt.
-
-### ▸ EDA 1.3-1.4
-
-Người 1: Về dấu hiệu hỏng: độ mòn dao tách rõ nhất. Các biến khác nhìn riêng thì yếu, nhưng máy hỏng có tốc độ và lực xoắn dồn về hai đầu — hỏng do quá tải hoặc thiếu tải, tức tín hiệu phi tuyến theo tổ hợp, nên cần mô hình cây và feature engineering. Kiểm tra thêm bằng chi-square: ca làm việc không lệch, nhưng loại sản phẩm có lệch. Và 2.8% máy B nằm ngoài dải giá trị của A — vùng này mô hình cây dễ sai, nhóm ghi vào phần hạn chế. Em xin chuyển cho bạn Người 2.
-
+> Chốt kỷ luật xuyên suốt (nhắc đi nhắc lại cho ăn điểm tiêu chí 1): *"mọi lựa chọn chọn bằng IWV — không nhìn nhãn Test B"*.
 
 ---
 
-## NGƯỜI 2 — Tiền xử lý, FE & Phát hiện shift
+## NGƯỜI 1 — Mở đầu & Khám phá dữ liệu (S1–S9, ~3')
 
-### ▸ Divider Phần 2
+**S1 — Title** — **[mở]** "Kính chào thầy/cô và các bạn. Nhóm em trình bày bài toán **dự đoán máy CNC sắp hỏng khi dữ liệu lúc học khác lúc dùng thật**. Kết quả chốt: **F1 = 0,781** trên nhà máy B, gấp **3,4 lần** baseline, notebook chạy full không lỗi. Bài gồm 4 phần do 4 thành viên trình bày."
 
-Người 2: Cảm ơn bạn. Em trình bày phần tiền xử lý, tạo đặc trưng và phát hiện shift.
+**S2 — Agenda** — "Người 1 (em) trình bày bài toán & khám phá dữ liệu; Người 2 tiền xử lý, tạo đặc trưng & phát hiện shift; Người 3 xử lý shift & mô hình; Người 4 kết quả, độ tin cậy & kết luận. *(cue: chỉ vào bảng)* Hai khối nhiều điểm nhất là **xử lý shift (2đ)** và **kết quả thật (3đ)**."
 
-### ▸ Phần 2.1
+**S3 — Divider Phần 1** — "Em bắt đầu Phần 1."
 
-Người 2: Tiền xử lý gồm chuẩn hoá số đo và mã hoá nhãn chữ. Quy tắc vàng chống rò rỉ dữ liệu: chỉ học tham số chuẩn hoá trên nhà máy A rồi áp cho cả hai, tuyệt đối không fit trên B. Nếu vi phạm sẽ có điểm ảo cao nhưng triển khai thật thất bại. Loại sản phẩm mã hoá theo thứ tự L<M<H, ca làm việc one-hot. Lớp hiếm xử lý bằng class_weight và scale_pos_weight khoảng 12.6. Tất cả gói trong Pipeline nên trong mỗi fold cross-validation đều fit lại đúng cách.
+**S4 — Bài toán** — "Mục tiêu: dự đoán nhị phân — máy có hỏng ở ca kế tiếp không — để bảo trì chủ động. Có 5 số đo cảm biến + 2 nhãn phân loại. Hai thách thức: *(1)* máy hỏng chỉ **~8%** nên rất hiếm — **accuracy vô nghĩa, phải dùng F1/AUC-PR**; *(2)* học ở nhà máy A nhưng chấm ở nhà máy B khác điều kiện — **distribution shift**."
 
-### ▸ Phần 2.2 — ý tưởng cốt lõi
+**S5 — Shift là gì** — "Distribution shift = dữ liệu lúc học khác lúc dùng, như học lái ở quê rồi ra thành phố. Mấu chốt: **cơ chế hỏng thì giống nhau A và B, chỉ các con số bị lệch** (covariate shift). Luật khó nhất: bị chấm trên B nhưng **cấm nhìn nhãn B**. ⇒ Chiến lược 3 bước: đo lệch → tạo đặc trưng miễn nhiễm → tinh chỉnh."
 
-Người 2: Đây là ý tưởng cốt lõi của cả bài. Thay vì tạo tích thô, nhóm mã hoá 'khoảng cách tới ngưỡng hỏng' cho 3 cơ chế: tản nhiệt kém, quá/thiếu công suất, và quá tải căng thẳng. Điểm hay là các ngưỡng này là hằng số vật lý của máy, không đổi giữa A và B, nên 3 đặc trưng miễn nhiễm với shift. Kiểm chứng: chỉ thêm 3 đặc trưng này, mô hình LogReg đơn giản đã mạnh gần gấp đôi, AUC-PR từ 0.22 lên 0.50.
+**S6 — Bản đồ đề** — "Bài bám đúng 5 phần chấm điểm. ⇒ Nhóm đầu tư nặng nhất vào xử lý shift và kết quả — nơi quyết định điểm."
 
-### ▸ Phần 3.1 — PSI + caveat
+**S7 — EDA 1.1** — "Máy hỏng ~7–8% ở cả hai. **Tỉ lệ hỏng gần như không đổi A→B** ⇒ cái lệch nằm ở **số đo đầu vào**, không phải ở nhãn — đúng covariate shift. Dữ liệu sạch: **0 thiếu, 0 trùng**. *(cue: chỉ bảng)* B nóng hơn, quay nhanh hơn; độ mòn dao gần như bằng."
 
-Người 2: Nhóm dùng PSI và KS đo mức lệch từng biến. Hai biến nhiệt độ lệch rất mạnh, PSI 1.08 và 0.55. Ngược lại, 3 đặc trưng vật lý có PSI xấp xỉ 0, dù chúng được tạo từ chính nhiệt độ và tốc độ đang lệch — đây là bằng chứng số cho ý tưởng chính. Một lưu ý trung thực nhóm chủ động nêu: hai đặc trưng hinge phần lớn bằng 0 nên PSI bị bão hoà về 0; vì vậy bằng chứng bất biến mạnh hơn là drift-AUC 0.51 và bảng P(hỏng|cờ) ở slide sau, chứ không chỉ dựa vào PSI. Nêu điều này cho thấy nhóm hiểu sâu công cụ.
+**S8 — EDA 1.2** — "Định lượng: B nóng hơn +2–2,5°, dao động rộng hơn ~30%, quay nhanh +70 v/ph, lực xoắn thấp hơn 8,5%. *(cue: chỉ histogram)* Hai màu A/B **không trùng nhau = shift nhìn tận mắt**. Độ mòn dao là chỗ neo tin cậy."
 
-### ▸ Phần 3.2 — drift classifier
-
-Người 2: Kỹ thuật drift classifier: huấn luyện một mô hình đoán mẫu thuộc nhà máy A hay B, chỉ từ số đo. Nếu đoán dễ nghĩa là hai nhà máy khác nhau nhiều. Dùng toàn bộ số đo thô thì AUC 0.82 — lệch mạnh, thủ phạm là hai biến nhiệt độ. Nhưng chỉ dùng 3 đặc trưng vật lý thì AUC rơi về 0.51, gần như tung đồng xu — chúng tàng hình với shift. Củng cố thêm: tỉ lệ hỏng khi máy vượt ngưỡng nguy hiểm gần như giống nhau ở A và B, 0.84 so với 0.83, chứng tỏ cơ chế hỏng bất biến. Em chuyển cho bạn Người 3.
-
+**S9 — EDA 1.3–1.4** — "Dấu hiệu hỏng: độ mòn dao tách rõ nhất; các biến khác dồn về **hai đầu** (quá tải/thiếu tải) ⇒ tín hiệu **phi tuyến theo tổ hợp** → cần mô hình cây + feature engineering. Kiểm thêm: ca không lệch, loại SP có lệch; 2,8% máy B ngoài dải A (ghi Hạn chế). **[chuyển]** Em mời bạn Người 2."
 
 ---
 
-## NGƯỜI 3 — Xử lý shift & Mô hình
+## NGƯỜI 2 — Tiền xử lý, Đặc trưng & Đo shift (S10–S14, ~3')
 
-### ▸ Divider Phần 3
+**S10 — Divider Phần 2** — "Cảm ơn bạn. Em trình bày tiền xử lý, tạo đặc trưng và phát hiện shift."
 
-Người 3: Cảm ơn bạn. Em trình bày cách xử lý shift và xây dựng mô hình.
+**S11 — Phần 2.1** — "Chuẩn hoá số đo + mã hoá nhãn chữ. **Quy tắc vàng chống rò rỉ: chỉ học tham số chuẩn hoá trên A rồi áp cho cả hai — tuyệt đối không fit trên B** (⇒ vì sao: fit trên B = điểm ảo, triển khai thật sụp). Loại SP mã hoá thứ tự L<M<H, ca one-hot. Lớp hiếm: class_weight / scale_pos_weight ≈ 12,6. Tất cả gói trong Pipeline để fit lại đúng trong mỗi fold."
 
-### ▸ Phần 3.3 — reweighting
+**S12 — Phần 2.2 (ý tưởng cốt lõi)** — "Đây là **ý tưởng cốt lõi**. Thay vì tích thô, nhóm mã hoá **'khoảng cách tới ngưỡng hỏng'** cho 3 cơ chế (tản nhiệt kém, quá/thiếu công suất, quá tải). ⇒ Vì sao hay: các ngưỡng là **hằng số vật lý bất biến A↔B** → 3 đặc trưng **miễn nhiễm shift**. Kiểm chứng bằng số: chỉ thêm 3 cột, LogReg mạnh gần **gấp đôi (AUC-PR 0,22→0,50)**."
 
-Người 3: Kỹ thuật xử lý shift thứ nhất là Importance Reweighting. Ý tưởng: máy A nào trông giống máy B thì cho trọng số cao hơn khi học, để mô hình học nghiêng về phân phối B. Trọng số lấy từ drift classifier, và phải chặn ≤ 10 để vài mẫu cá biệt không chi phối. Kết quả chỉ nhích nhẹ — và đây là tin tốt: nó chứng minh 3 đặc trưng vật lý đã gánh gần hết việc chống lệch, reweighting chỉ vá phần nhỏ còn lại.
+**S13 — Phần 3.1 PSI/KS** — "Đo mức lệch bằng PSI/KS. Nhiệt độ lệch rất mạnh (PSI 1,08 / 0,55); **3 đặc trưng vật lý PSI ≈ 0** dù tạo từ chính biến đang lệch. *(cue: đọc ô cảnh báo)* **Lưu ý trung thực:** 2 đặc trưng hinge phần lớn = 0 nên PSI bị bão hoà về 0 → bằng chứng bất biến **chính** là drift-AUC 0,51 và bảng P(hỏng|cờ), không chỉ PSI. *(nêu điều này = ăn điểm hiểu sâu công cụ)*."
 
-### ▸ Phần 3.4 — IWV
-
-Người 3: Vấn đề đạo đức: bị chấm trên B nhưng không được nhìn nhãn B. Giải pháp là IWV — Importance-Weighted Validation. Ta dùng dữ liệu A nhưng đánh trọng số density-ratio để nó giống phân phối B, tạo thành một bộ validation giả lập B mà không cần nhãn B. Nhờ đó mọi lựa chọn model và ngưỡng đều trung thực. Ngưỡng mặc định 0.5 không tối ưu cho lớp hiếm nên nhóm chỉnh lại để F1 cao nhất. Kiểm định cho thấy đường IWV bám sát đường thật trên B, nên harness đáng tin. Lưu ý ESS chỉ 25.5% nên có nhiễu, các bản đầu bảng coi như ngang nhau.
-
-### ▸ Phần 4.1 — models
-
-Người 3: Nhóm thử 4 mô hình thuộc 3 trường phái: Logistic Regression làm mốc; Random Forest và ExtraTrees kiểu bagging nhiều cây bỏ phiếu, ổn định; và XGBoost kiểu boosting nhiều cây sửa lỗi nối tiếp, mạnh nhưng dễ overfit nhà máy A. Siêu tham số dò tự động bằng RandomizedSearchCV với StratifiedKFold 5 fold giữ đúng tỉ lệ hỏng, chấm theo AUC-PR. Việc chọn mô hình dùng IWV chứ không nhìn nhãn B.
-
-### ▸ Phần 4.2 — bảng so sánh
-
-Người 3: Bảng so sánh toàn bộ hành trình trên nhà máy B. Baseline LogReg thô F1 chỉ 0.231. Thêm 3 đặc trưng vật lý lên 0.352. Chuyển sang mô hình cây nhảy vọt lên ~0.77. Reweighting và chỉnh ngưỡng giữ nguyên mức đó. Bản gộp cuối cùng đạt F1 0.781 — cao nhất. F1 là con số chính theo yêu cầu đề. Cột 'báo đúng' là Precision, 'bắt được' là Recall.
-
-### ▸ Phần 4.3 — ensemble
-
-Người 3: Bước cuối là gộp mô hình. Vì mỗi mô hình sai ở chỗ khác nhau, gộp lại sẽ bù trừ và ổn định hơn. Nhóm thử hai cách: Voting là trung bình Random Forest và XGBoost, mỗi cái 50%; Stacking là mô hình nhỏ học cách trộn. Chọn bằng IWV và chốt Voting vì đơn giản, khó overfit shift. Stacking nghiêng nặng XGBoost, cái dễ gãy trên B, nên giữ nhưng không chốt. Em xin chuyển cho bạn Người 4 trình bày kết quả.
-
+**S14 — Phần 3.2 Drift classifier** — "Huấn luyện mô hình đoán A/B chỉ từ số đo: dùng số đo thô AUC **0,82** (lệch mạnh, thủ phạm 2 biến nhiệt độ); chỉ 3 đặc trưng vật lý AUC **0,51** ≈ tung đồng xu → **tàng hình với shift**. Củng cố: tỉ lệ hỏng khi vượt ngưỡng giống nhau A/B (0,84 vs 0,83) ⇒ cơ chế bất biến. **[chuyển]** Em mời bạn Người 3."
 
 ---
 
-## NGƯỜI 4 — Kết quả, Độ tin cậy & Kết luận
+## NGƯỜI 3 — Xử lý shift & Mô hình (S15–S20, ~3,5')
 
-### ▸ Divider Phần 4
+**S15 — Divider Phần 3** — "Cảm ơn bạn. Em trình bày xử lý shift và xây mô hình."
 
-Người 4: Cảm ơn bạn. Em trình bày kết quả cuối, độ tin cậy và bài học.
+**S16 — Phần 3.3 Reweighting** — "Kỹ thuật #1 — **Importance Reweighting**: máy A nào giống B thì cho trọng số cao hơn khi học. ⇒ Vì sao **clip ≤ 10**: trọng số thô nổ tới ~57, phải chặn kẻo vài mẫu chi phối. Kết quả nhích nhẹ 0,669→0,672 — **và đó là tin tốt**: đặc trưng vật lý đã gánh gần hết việc chống lệch, reweighting chỉ vá phần nhỏ."
 
-### ▸ Kết quả cuối
+**S17 — Phần 3.4 IWV** — "Vấn đề đạo đức: chấm trên B nhưng cấm nhìn nhãn B. Giải pháp **IWV** — dùng dữ liệu A đánh trọng số cho 'giống B' → **bộ chấm thử giả lập B mà không cần nhãn B**. *(cue: chỉ đồ thị)* đường IWV bám sát đường B thật ⇒ harness đáng tin. Ngưỡng 0,5 không tối ưu lớp hiếm → chỉnh để F1 cao nhất. Lưu ý ESS 25,5% → có nhiễu, coi các bản đầu bảng là ngang nhau."
 
-Người 4: Kết quả chốt trên nhà máy B: F1 = 0.781, cao nhất trong mọi phiên bản. Bản chốt là gộp Random Forest và XGBoost bằng Voting, ngưỡng 0.705 chọn bằng IWV. Mô hình bắt được khoảng 75% máy sắp hỏng, và cứ 5 cảnh báo thì khoảng 4 đúng. So với baseline 0.231, đây là tiến bộ 3.4 lần. Đường PR-curve nằm cao hơn hẳn đường đoán bừa nên mô hình thực sự có giá trị.
+**S18 — Phần 4.1 Models** — "4 mô hình 3 trường phái: LogReg (mốc); RF & ExtraTrees (bagging, ổn định); XGBoost (boosting, mạnh nhưng dễ overfit A). Dò siêu tham số **RandomizedSearchCV + StratifiedKFold(5)**, chấm AUC-PR. ⇒ **Chọn model bằng IWV, không nhìn nhãn B.**"
 
-### ▸ Confusion matrix (slide MỚI)
+**S19 — Phần 4.2 Bảng so sánh** — "*(cue: chỉ bảng)* Baseline 0,231 → +3 đặc trưng 0,352 → mô hình cây **nhảy vọt ~0,77** → bản gộp **0,781** (cao nhất). **F1 là số so sánh chính** theo đề. 'Báo đúng' = Precision, 'Bắt được' = Recall."
 
-Người 4: Đây là ma trận nhầm lẫn của bản chốt, giúp nhìn tường minh 4 ô. TP là bắt đúng máy hỏng — mục tiêu chính. FN là bỏ sót máy hỏng, tốn kém nhất vì máy dừng đột ngột. FP là báo động giả, chi phí chỉ là kiểm tra thừa nên rẻ hơn. Ở ngưỡng 0.705, Recall khoảng 75% và Precision khoảng 81%. Vì bỏ sót đắt hơn báo động giả, trong thực tế nhà máy có thể hạ ngưỡng để tăng Recall. Lưu ý: số cụ thể mỗi ô sẽ hiện sau khi chạy full notebook.
+**S20 — Phần 4.3 Ensemble** — "Gộp mô hình vì mỗi cái sai chỗ khác nhau → bù trừ. Voting (RF+XGB 50/50) vs Stacking. ⇒ **Chốt Voting** (chọn bằng IWV): đơn giản, khó overfit shift; Stacking nghiêng nặng XGB — cái dễ gãy trên B. **[chuyển]** Em mời bạn Người 4."
 
-### ▸ Bootstrap
+---
 
-Người 4: Vì chỉ có 477 máy hỏng ở B nên F1 có sai số, nhóm dùng bootstrap 2000 lần để báo khoảng tin cậy. F1 = 0.781 với khoảng tin cậy 95% từ 0.751 đến 0.809. Các bản đầu bảng chênh nhau rất nhỏ nên nhóm coi như ngang nhau, không thổi phồng hơn kém. Khi so cặp trực tiếp thì bản gộp thắng bản đơn 99.8% số lần nhưng biên độ nhỏ. Đây là cách trình bày trung thực về mặt thống kê.
+## NGƯỜI 4 — Kết quả, Báo cáo & Kết luận (S21–S29, ~4')  *(chủ lực 2 tiêu chí Phần 5)*
 
-### ▸ Phần 5.1 — insight
+**S21 — Divider Phần 4** — "Cảm ơn bạn. Em trình bày kết quả cuối, độ tin cậy và bài học."
 
-Người 4: Bài học vận hành: thứ nhất, theo dõi độ mòn dao là quan trọng nhất vì nó vừa báo hỏng tốt vừa can thiệp được bằng cách thay dao. Thứ hai, đặt cảnh báo theo ngưỡng vật lý thì dùng lại được khi đổi máy hay đổi nhà máy, không cần huấn luyện lại. Thứ ba, vì bỏ sót đắt hơn báo động giả, nhóm đề xuất hai mức cảnh báo: mức cao thì dừng máy kiểm tra ngay, mức thấp thì theo dõi và lên lịch bảo trì.
+**S22 — Kết quả** — "*(cue: chỉ 3 thẻ số)* Bản chốt gộp RF+XGB, ngưỡng 0,705 chọn bằng IWV: **F1 = 0,781, Recall ~75%, Precision ~81%**. *(cue: chỉ biểu đồ hành trình)* từ 0,231 lên 0,781 = **gấp 3,4 lần**. PR-curve nằm cao hơn hẳn 'đoán bừa' ⇒ mô hình thật sự có giá trị."
 
-### ▸ Phần 5.2 — hạn chế
+**S23 — Confusion matrix** — "*(cue: chỉ 4 ô)* Nhìn tường minh: TP bắt đúng máy hỏng; **FN — bỏ sót — tốn kém nhất** (máy dừng đột ngột); FP — báo động giả — rẻ hơn. Ở ngưỡng 0,705: Recall ~75%, Precision ~81%. ⇒ Vì FN đắt hơn nên **thực tế có thể hạ ngưỡng để tăng Recall**."
 
-Người 4: Nhóm trung thực nêu hạn chế: mô hình cây đoán kém ở 2.8% máy B nằm ngoài dải A; giả định cơ chế hỏng bất biến chưa kiểm chứng 100% vì không có nhãn B; độ tin IWV giới hạn với ESS 25.5%; và dữ liệu chỉ 5 số đo nên có trần hiệu năng. Hướng cải tiến: hiệu chỉnh lại ngưỡng công suất, thêm dữ liệu chuỗi thời gian, dùng domain adaptation nâng cao, và thu thập một ít nhãn B để kiểm chứng.
+**S24 — Bootstrap** — "F1 lớp hiếm nhiễu (chỉ 477 máy hỏng) nên nhóm bootstrap 2000 lần: **F1 = 0,781, CI 95% [0,751; 0,809]**. Các bản đầu bảng chênh rất nhỏ → coi ngang nhau, **không thổi phồng hơn-kém**. So cặp: bản gộp thắng bản đơn 99,8% số lần nhưng biên độ nhỏ. *(nhấn: trung thực về thống kê)*."
 
-### ▸ Quyết định kỹ thuật & lý do
+**S25 — Phần 5.1 Insight**  *(← Tiêu chí 2)* — "Bài học vận hành: *(1)* **theo dõi độ mòn dao là ưu tiên #1** — vừa báo hỏng tốt vừa can thiệp được (thay dao); *(2)* **đặt cảnh báo theo ngưỡng vật lý** → dùng lại được khi đổi máy/nhà máy, không cần train lại; *(3)* bỏ sót đắt hơn báo động giả → **đề xuất 2 mức cảnh báo**: mức cao dừng máy kiểm tra ngay, mức thấp theo dõi/lên lịch bảo trì."
 
-Người 4: Slide này tổng hợp mọi quyết định kỹ thuật và lý do, cho thấy bài làm có mạch logic chặt chẽ — không quyết định nào là tuỳ tiện. Đây cũng là bảng tra để nhóm trả lời nhanh khi thầy/cô hỏi 'vì sao chọn cái này'. Ví dụ: dùng F1 vì lớp hiếm; 3 đặc trưng vật lý vì ngưỡng cơ chế bất biến qua shift; chọn model bằng IWV để không rò rỉ nhãn B; clip trọng số vì w thô nổ tới 57; chốt Voting vì đơn giản và khó overfit shift.
+**S26 — Phần 5.2 Hạn chế & Cải tiến**  *(← Tiêu chí 2)* — "**Hạn chế** (trung thực): cây không ngoại suy (2,8% máy B ngoài dải A); giả định covariate-shift-thuần **chưa kiểm chứng được** vì thiếu nhãn B; ESS 25,5%; chỉ 5 số đo → có trần hiệu năng. **Cải tiến:** hiệu chỉnh ngưỡng công suất; thêm dữ liệu chuỗi thời gian; domain adaptation (CORAL); thu một ít nhãn B để kiểm chứng."
 
-### ▸ Kết luận
+**S27 — Quyết định kỹ thuật & lý do**  *(← Tiêu chí 1)* — "*(cue: chỉ bảng)* Slide này tổng hợp **mọi quyết định kỹ thuật và lý do** — cho thấy bài có mạch logic chặt, không quyết định nào tuỳ tiện, và là bảng để nhóm **trả lời nhanh khi thầy/cô hỏi 'vì sao'**: dùng F1 vì lớp hiếm; 3 đặc trưng vật lý vì ngưỡng bất biến; chọn model bằng IWV để không rò rỉ; clip trọng số vì w thô nổ tới 57; chốt Voting vì đơn giản, khó overfit."
 
-Người 4: Tóm lại, chìa khoá của bài là bám vào quy luật vật lý không đổi thay vì các con số thô đã lệch; nhờ đó mô hình học ở A vẫn chạy tốt trên B. Mọi lựa chọn đều trung thực qua IWV, không nhìn đáp án B. Kết quả F1 0.781, gấp 3.4 lần baseline. Nhóm em xin cảm ơn và sẵn sàng trả lời câu hỏi.
+**S28 — Kết luận**  *(← Tiêu chí 2)* — "Tóm lại: chìa khoá là **bám quy luật vật lý bất biến** thay vì các con số thô đã lệch → mô hình học ở A vẫn chạy tốt trên B; mọi lựa chọn **trung thực qua IWV, không nhìn nhãn B**. Kết quả **F1 = 0,781, gấp 3,4 lần** baseline."
 
-### ▸ Q&A
+**S29 — Q&A** — "Nhóm em xin cảm ơn thầy/cô và sẵn sàng trả lời câu hỏi." *(cả nhóm đứng lên; trả lời theo ma trận dưới)*
 
-Cả nhóm: mời thầy/cô đặt câu hỏi. Phân công trả lời theo phần phụ trách; xem ngân hàng câu hỏi kèm theo.
+---
 
+## Ma trận phân công Q&A  (tra `NGAN_HANG_QA.md`)
+
+| Người | Chịu trách nhiệm nhóm câu hỏi |
+|---|---|
+| **1** | **A** — Bài toán, dữ liệu, thước đo (vì sao F1 không accuracy, sạch dữ liệu…) |
+| **2** | **B** — Phát hiện shift (PSI, sao PSI=0,0000, KS, drift classifier) · **C** — Feature engineering (vì sao đặc trưng biên, ngưỡng lấy đâu) |
+| **3** | **D** — Xử lý shift & rò rỉ (reweighting, clip, IWV, "có nhìn nhãn B không") · **E** — Mô hình & ensemble (sao RF>XGB, sao Voting) |
+| **4** | **F** — Đánh giá & độ tin cậy (bootstrap, CI, so cặp) · **G** — Vận hành & mở rộng (2 mức cảnh báo, đổi dây chuyền) · **H** — Câu chốt hạ |
+
+> Nguyên tắc trả lời: **nói thẳng + có số + thừa nhận hạn chế khi cần**. Câu khó nhất đã có sẵn đáp án mẫu trong `NGAN_HANG_QA.md` (đặc biệt B3 "sao PSI=0,0000", D3 "có rò rỉ nhãn B không", F3 "bootstrap có công bằng không").
+
+---
+
+## Mẹo tổng khi trình bày (ăn điểm tiêu chí 1)
+- Mỗi người **kết slide bằng một câu "⇒ vì sao"** — đó chính là "giải thích quyết định kỹ thuật".
+- Nhắc lại đúng **3 lần** câu neo: *"chọn bằng IWV, không nhìn nhãn Test B"* (mở đầu, phần shift, kết luận).
+- Bấm giờ: nếu quá giờ, **cắt ở slide phụ** (S6 bản đồ đề, S9 phần 1.4, S23 confusion matrix) — giữ nguyên S12 (đặc trưng), S14 (drift 0,51), S22 (kết quả), S25–28 (báo cáo).
