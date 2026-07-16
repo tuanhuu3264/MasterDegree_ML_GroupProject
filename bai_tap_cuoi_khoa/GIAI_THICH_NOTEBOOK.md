@@ -56,7 +56,7 @@ Mục tiêu: nhìn dữ liệu để **ra quyết định** (dùng metric gì, c
 - `[21] CODE` heatmap tương quan → `[23]` không có đa cộng tuyến, giữ cả 5 biến.
 
 ### 1.3b Soi tương tác `[24–30]`
-- `[25] CODE` histogram theo nhãn (density) → `[27]` máy hỏng có tốc độ/mômen dồn về **hai đuôi** (rất cao HOẶC rất thấp) → dấu hiệu quá tải/thiếu tải.
+- `[25] CODE` histogram theo nhãn (density) → `[27]` máy hỏng có **mômen** dồn về **hai đuôi** (rất cao HOẶC rất thấp), **tốc độ** dồn về **đuôi thấp** (quay chậm) → dấu hiệu quá tải/thiếu tải.
 - `[28] CODE` scatter 2 biến tô màu nhãn → `[30]` máy hỏng bám **dải chéo** trong không gian tốc độ×mômen (≈ công suất bất thường) → gợi ý FE: `mòn×mômen` và `công suất`.
 
 ### 1.4 Biến phân loại `[31–34]`

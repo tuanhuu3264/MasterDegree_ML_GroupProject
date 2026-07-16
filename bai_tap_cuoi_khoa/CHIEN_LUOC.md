@@ -134,8 +134,9 @@ vật lý đã "nuốt" thông tin của chúng qua ngưỡng bất biến:
 > Drift Classifier trên bộ này sẽ có AUC thấp hơn hẳn (bằng chứng đã cắt phụ thuộc shift). `loai_san_pham`
 > vẫn giữ vì đã ẩn trong `osf_bien` (ngưỡng theo type); có thể thêm `cong_suat_co`+`chenh_lech_nhiet` nếu muốn AUC-PR nhỉnh.
 
-> EDA đã xác nhận hướng này: máy hỏng có `momen_xoan`/`toc_do_quay` dồn về **hai đuôi** (36% máy
-> hỏng nằm ngoài P10–P90 của mômen vs 20% nếu ngẫu nhiên) và bám **dải chéo** trong không gian
+> EDA đã xác nhận hướng này: máy hỏng có `momen_xoan` dồn về **hai đuôi** (thấp/cao) — 36% máy
+> hỏng nằm ngoài P10–P90 của mômen vs 20% nếu ngẫu nhiên; còn `toc_do_quay` dồn về **đuôi thấp**
+> (quay chậm), và bám **dải chéo** trong không gian
 > tốc độ×mômen → đúng chữ ký của quá tải công suất/căng thẳng. FE cơ học sẽ "nắn thẳng" các biên này.
 
 ---

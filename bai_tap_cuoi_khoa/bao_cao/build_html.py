@@ -193,7 +193,7 @@ tương ứng được tổng hợp trong Bảng 3.</p>
 <tr><td>1</td><td>Mất cân bằng lớp khoảng 8%, ổn định giữa A và B</td><td>Loại độ chính xác, dùng F1/AUC-PR (§5.1); là dịch chuyển hiệp biến nên phù hợp hiệu chỉnh trọng số (§5.6)</td></tr>
 <tr><td>2</td><td>Nhiệt độ và tốc độ trên B dịch mạnh, độ phân tán rộng hơn khoảng 30% (Hình 1)</td><td>Không sử dụng biến thô làm ranh giới quyết định; cần đặc trưng bất biến (§5.3)</td></tr>
 <tr><td>3</td><td>Độ mòn dao là tín hiệu mạnh nhất (hệ số tương quan +0,20) và ổn định (PSI = 0,001)</td><td>Chỉ báo dự báo then chốt, đồng thời can thiệp được; cơ sở cho khuyến nghị bảo trì (§7)</td></tr>
-<tr><td>4</td><td>Tín hiệu hỏng mang tính phi tuyến, tập trung ở hai đuôi phân phối (quá tải hoặc thiếu tải)</td><td>Cần mô hình cây; mô hình tuyến tính thuần không đủ (§5.5)</td></tr>
+<tr><td>4</td><td>Tín hiệu hỏng mang tính phi tuyến, tập trung ở các đuôi phân phối (mòn dao cao, tốc độ thấp, mômen ở cả hai biên)</td><td>Cần mô hình cây; mô hình tuyến tính thuần không đủ (§5.5)</td></tr>
 </table>
 <div class="fig avoid-break"><img class="chart" src="{I['shift']}">
 <div class="cap"><b>Hình 1.</b> Phân phối chồng lấn giữa Dây chuyền A và B: nhiệt độ và tốc độ dịch chuyển rõ rệt,
@@ -296,7 +296,7 @@ gây hại. Thứ hai, cùng lập luận cho thấy phép chuẩn hóa <code>St
 mô hình cây khi B dịch chuyển đồng đều.</p>
 
 <h3>5.5 Lựa chọn họ mô hình</h3>
-<p>Do tín hiệu phi tuyến và phân bố hai đuôi, mô hình tuyến tính thuần tỏ ra hạn chế; thực nghiệm xác nhận mô hình
+<p>Do tín hiệu phi tuyến và tập trung ở các đuôi phân phối, mô hình tuyến tính thuần tỏ ra hạn chế; thực nghiệm xác nhận mô hình
 cây vượt trội (F1 tăng từ 0,35 lên 0,77). Nghiên cứu sử dụng ba mô hình cây theo ba cơ chế khác nhau nhằm tăng tính
 đa dạng cho học kết hợp: Random Forest (đóng bao, giảm phương sai), XGBoost (tăng cường, giảm độ chệch) và ExtraTrees
 (ngẫu nhiên hóa ngưỡng, phương sai thấp hơn nữa). Tham số <code>max_features='sqrt'</code> được chọn thay vì giá trị
