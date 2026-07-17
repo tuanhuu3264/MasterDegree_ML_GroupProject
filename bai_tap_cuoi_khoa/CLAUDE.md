@@ -18,10 +18,13 @@
 - `eda-checklist.md`, `CHIEN_LUOC.md`, `PAIN_POINTS.md`, `thi_nghiem/` (22 thí nghiệm), slide PPTX, `BAO_CAO_TOM_TAT.docx`.
 
 ## Ý tưởng cốt lõi của bài
-- **3 feature "khoảng-cách-tới-biên"** neo ngưỡng vật lý bất biến (HDF/PWF/OSF): `nguy_tan_nhiet`,
-  `lech_cong_suat`, `bien_overstrain` → biên học trên A dùng thẳng trên B (PSI≈0, Drift AUC 0.51).
-- Hành trình: v0 LogReg thô (F1 0.231) → +FE v1 (0.352) → cây RF/XGB/ET v2 (~0.77) → reweight v3 →
-  threshold v4 → ensemble v5/v6. **Chốt v6 Voting: F1=0.781, AUC-ROC=0.872, AUC-PR=0.670.**
+- **4 feature "khoảng-cách-tới-biên"** neo ngưỡng KHÔI PHỤC TỪ LUẬT SINH NHÃN trên A (HDF/PWF/OSF/TWF):
+  `nguy_tan_nhiet`, `lech_cong_suat`, `bien_overstrain`, `mon_twf` — PWF [2600,11500], OSF
+  {L:12800,M:13900,H:14500}, TWF mòn>244 → biên học trên A dùng thẳng trên B (PSI≈0, Drift AUC 0.53).
+- Hành trình: v0 LogReg thô (F1 0.231) → +FE v1 (0.716) → cây RF/XGB/ET v2 (0.783) → reweight v3 →
+  threshold v4 → ensemble v5/v6. **Chốt v6 Voting RF.25/ET.25/XGB.5 thr 0.585: F1=0.783, AUC-ROC=0.872,
+  AUC-PR=0.666.** Từ v2 mọi bản hội tụ 0.783 = trần (Phụ lục A: ~25% ca hỏng nhiễu ngẫu nhiên,
+  precision luật 0.26→0.81).
 - **IWV (Importance-Weighted Validation):** chọn model/ngưỡng "như thể ở B" mà KHÔNG nhìn nhãn Test.
 - Metric: AUC-PR / F1 / AUC-ROC (KHÔNG accuracy) + bootstrap 95% CI cho F1.
 

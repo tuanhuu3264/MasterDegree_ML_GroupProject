@@ -34,8 +34,9 @@ test  = pd.read_csv('Data_Final/test.csv')
 NUM_COLS = ['nhiet_do_moi_truong','nhiet_do_quy_trinh','toc_do_quay','momen_xoan','do_mon_dao']
 TARGET = 'hong_hoc'
 NG_DT, NG_TOC = 8.6, 1380
-NG_CS_THAP, NG_CS_CAO = 3500, 9000
-NGUONG_OSF = {'L':11000,'M':12000,'H':13000}
+NG_CS_THAP, NG_CS_CAO = 2600, 11500                 # PWF: khoi phuc tu A
+NGUONG_OSF = {'L':12800,'M':13900,'H':14500}        # OSF: khoi phuc tu A
+NG_MON_TWF = 244                                    # TWF: khoi phuc tu A
 
 def add_features(df):
     out = df.copy()
@@ -45,15 +46,16 @@ def add_features(df):
     out['nguy_tan_nhiet']  = np.maximum(NG_DT-dt,0)*np.maximum(NG_TOC-out['toc_do_quay'],0)
     out['lech_cong_suat']  = np.maximum(NG_CS_THAP-pw,0)+np.maximum(pw-NG_CS_CAO,0)
     out['bien_overstrain'] = out['do_mon_dao']*out['momen_xoan'] - nguong
+    out['mon_twf']         = np.maximum(out['do_mon_dao']-NG_MON_TWF,0)
     return out
 
 tr_fe = add_features(train); te_fe = add_features(test)
-FE = ['nguy_tan_nhiet','lech_cong_suat','bien_overstrain']
+FE = ['nguy_tan_nhiet','lech_cong_suat','bien_overstrain','mon_twf']
 
 # ============ 1. Hanh trinh cai tien F1 ============
 labels = ['v0\nLogReg\nthô','v1\n+FE\nbiên','v2\nCây\n(RF/XGB)','v3\nRe-\nweight','v4\nThresh\nIWV','v6\nVoting\nchốt']
-f1     = [0.231, 0.352, 0.773, 0.772, 0.771, 0.781]
-aucpr  = [0.220, 0.501, 0.665, 0.676, 0.676, 0.670]
+f1     = [0.231, 0.716, 0.783, 0.783, 0.783, 0.783]
+aucpr  = [0.220, 0.645, 0.675, 0.671, 0.671, 0.666]
 fig, ax = plt.subplots(figsize=(9,4.2))
 x = np.arange(len(labels))
 bars = ax.bar(x, f1, color=[C_B if i<5 else C_OK for i in range(6)], alpha=0.9, width=0.62, zorder=3)
@@ -64,8 +66,8 @@ for i,(v) in enumerate(f1):
 ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=8.5)
 ax.set_ylabel('Điểm số (trên Dây chuyền B)')
 ax.set_ylim(0, 0.92)
-ax.set_title('Hành trình cải tiến — F1 tăng 3.4× (0.231 → 0.781)', fontsize=12, fontweight='bold', pad=10)
-ax.axhline(0.781, color=C_OK, ls=':', lw=1, alpha=0.6)
+ax.set_title('Hành trình cải tiến — F1 tăng 3.4× (0.231 → 0.783)', fontsize=12, fontweight='bold', pad=10)
+ax.axhline(0.783, color=C_OK, ls=':', lw=1, alpha=0.6)
 ax.legend(loc='upper left', fontsize=9)
 plt.tight_layout(); plt.savefig(OUT+'01_journey.png', bbox_inches='tight'); plt.close()
 
@@ -100,7 +102,8 @@ for c in FE:       psi_rows.append((c, psi(tr_fe[c].values, te_fe[c].values), 'b
 psi_df = pd.DataFrame(psi_rows, columns=['feat','psi','kind']).sort_values('psi')
 name_map = {'nhiet_do_moi_truong':'nhiệt độ MT','nhiet_do_quy_trinh':'nhiệt độ QT',
             'toc_do_quay':'tốc độ quay','momen_xoan':'mômen xoắn','do_mon_dao':'độ mòn dao',
-            'nguy_tan_nhiet':'nguy_tản_nhiệt ★','lech_cong_suat':'lệch_công_suất ★','bien_overstrain':'biên_overstrain ★'}
+            'nguy_tan_nhiet':'nguy_tản_nhiệt ★','lech_cong_suat':'lệch_công_suất ★',
+            'bien_overstrain':'biên_overstrain ★','mon_twf':'mòn_twf ★'}
 fig, ax = plt.subplots(figsize=(8.5,4))
 colors = [C_OK if k=='biên' else C_B for k in psi_df['kind']]
 ax.barh(range(len(psi_df)), psi_df['psi'], color=colors, alpha=0.9, zorder=3)
@@ -110,7 +113,7 @@ for i,v in enumerate(psi_df['psi']):
 ax.axvline(0.1, color='#f59e0b', ls='--', lw=1, label='0.1 (nhẹ)')
 ax.axvline(0.25, color=C_B, ls='--', lw=1, label='0.25 (mạnh)')
 ax.set_xlabel('PSI (Population Stability Index)')
-ax.set_title('PSI: shift dồn ở biến thô — 3 feature biên vật lý (★) PSI≈0', fontsize=11.5, fontweight='bold', pad=8)
+ax.set_title('PSI: shift dồn ở biến thô — 4 feature biên vật lý (★) PSI≈0', fontsize=11.5, fontweight='bold', pad=8)
 ax.legend(fontsize=8.5, loc='lower right')
 plt.tight_layout(); plt.savefig(OUT+'03_psi.png', bbox_inches='tight'); plt.close()
 
@@ -121,21 +124,22 @@ def prec_of(df, y):
     hdf = (dt<NG_DT)&(df['toc_do_quay']<NG_TOC)
     pwf = (pw<NG_CS_THAP)|(pw>NG_CS_CAO)
     osf = (df['do_mon_dao']*df['momen_xoan'] > df['loai_san_pham'].map(NGUONG_OSF))
+    twf = (df['do_mon_dao'] > NG_MON_TWF)
     out={}
-    for nm,fl in [('HDF',hdf),('PWF',pwf),('OSF',osf)]:
+    for nm,fl in [('HDF',hdf),('PWF',pwf),('OSF',osf),('TWF',twf)]:
         out[nm]= y[fl].mean() if fl.sum()>0 else 0
     return out
 
 pa = prec_of(train, train[TARGET]); pb = prec_of(test, test[TARGET])
-rules = ['HDF','PWF','OSF']
-fig, ax = plt.subplots(figsize=(7,3.8))
+rules = ['HDF','PWF','OSF','TWF']
+fig, ax = plt.subplots(figsize=(7.6,3.8))
 x = np.arange(len(rules)); w=0.36
 ax.bar(x-w/2, [pa[r] for r in rules], w, color=C_A, alpha=0.9, label='A (train)', zorder=3)
 ax.bar(x+w/2, [pb[r] for r in rules], w, color=C_B, alpha=0.9, label='B (test)', zorder=3)
 for i,r in enumerate(rules):
     ax.text(i-w/2, pa[r]+0.015, f'{pa[r]:.2f}', ha='center', fontsize=9)
     ax.text(i+w/2, pb[r]+0.015, f'{pb[r]:.2f}', ha='center', fontsize=9)
-ax.set_xticks(x); ax.set_xticklabels(['HDF\n(tản nhiệt)','PWF\n(công suất)','OSF\n(overstrain)'])
+ax.set_xticks(x); ax.set_xticklabels(['HDF\n(tản nhiệt)','PWF\n(công suất)','OSF\n(overstrain)','TWF\n(mòn dao)'])
 ax.set_ylabel('P(hỏng | máy vượt ngưỡng luật)')
 ax.set_ylim(0,1)
 ax.set_title('Bằng chứng bất biến: cơ chế hỏng đứng yên khi A→B', fontsize=11.5, fontweight='bold', pad=8)
@@ -145,7 +149,7 @@ plt.tight_layout(); plt.savefig(OUT+'04_invariance.png', bbox_inches='tight'); p
 # ============ 5. Confusion matrix v6 (suy tu P/R/positives) ============
 # B: 6000 dong, 477 hong. R=0.753, P=0.812
 POS = int(round(test[TARGET].sum())); N = len(test); NEG = N-POS
-R, P = 0.753, 0.812
+R, P = 0.751, 0.817
 TP = int(round(R*POS)); FP = int(round(TP/P - TP)); FN = POS-TP; TN = NEG-FP
 cm = np.array([[TN, FP],[FN, TP]])
 fig, ax = plt.subplots(figsize=(4.8,4.3))
@@ -159,14 +163,14 @@ for i in range(2):
                 color='white' if val>cm.max()*0.5 else '#1e293b')
 ax.set_xticks([0,1]); ax.set_xticklabels(['Dự đoán: không hỏng','Dự đoán: hỏng'], fontsize=9)
 ax.set_yticks([0,1]); ax.set_yticklabels(['Thực: không hỏng','Thực: hỏng'], fontsize=9)
-ax.set_title(f'Ma trận nhầm lẫn v6 (ngưỡng 0.705, Dây chuyền B)\nP={P:.2f}  R={R:.2f}  F1=0.781',
+ax.set_title(f'Ma trận nhầm lẫn v6 (ngưỡng 0.585, Dây chuyền B)\nP={P:.2f}  R={R:.2f}  F1=0.783',
              fontsize=10.5, fontweight='bold', pad=10)
 plt.tight_layout(); plt.savefig(OUT+'05_confusion.png', bbox_inches='tight'); plt.close()
 
 # ============ 6. Drift AUC ============
 fig, ax = plt.subplots(figsize=(7,2.6))
-cats = ['Toàn bộ\nfeature','Chỉ 5 biến\nthô','Chỉ 3 feature\nbiên vật lý']
-vals = [0.819, 0.817, 0.512]
+cats = ['Toàn bộ\nfeature','Chỉ 5 biến\nthô','Chỉ 4 feature\nbiên vật lý']
+vals = [0.819, 0.817, 0.525]
 cols = [C_B, C_B, C_OK]
 b = ax.barh(range(3), vals, color=cols, alpha=0.9, zorder=3)
 for i,v in enumerate(vals):
@@ -175,7 +179,7 @@ ax.axvline(0.5, color='#64748b', ls='--', lw=1.2, label='0.5 = không phân bi�
 ax.set_yticks(range(3)); ax.set_yticklabels(cats, fontsize=9.5)
 ax.set_xlim(0.4,0.95); ax.invert_yaxis()
 ax.set_xlabel('Drift AUC (mô hình đoán A hay B)')
-ax.set_title('Feature biên "trong suốt" với shift (AUC 0.51 ≈ đoán mù)', fontsize=11, fontweight='bold', pad=8)
+ax.set_title('Feature biên "trong suốt" với shift (AUC 0.53 ≈ đoán mù)', fontsize=11, fontweight='bold', pad=8)
 ax.legend(fontsize=8.5, loc='lower right')
 plt.tight_layout(); plt.savefig(OUT+'06_drift.png', bbox_inches='tight'); plt.close()
 
